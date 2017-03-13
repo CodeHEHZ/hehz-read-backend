@@ -6,7 +6,11 @@
 - Redis
 
 **运行**
+
 1. `$ npm i`
+
 2. `$ npm i gulp -g`
+
 3. `$ gulp watch`
+
 4. 访问 `http://localhost:3000` 。
