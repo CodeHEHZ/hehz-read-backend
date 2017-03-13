@@ -4,22 +4,26 @@ let express = require('express'),
     passport = require('passport'),
     Account = require('../schemas').Account;
 
-router.post('/register', passport.initialize(), function(req, res, next) {
+router.post('/register', function(req, res, next) {
     Step(
         function() {
             Account.register(new Account({ username: req.body.username }), req.body.password, this);
         },
         function(err, account) {
             if (err) {
-                res.send('www');
+                res.json({
+                    error: err.name,
+                    message: err.message
+                });
             } else {
-                passport.authenticate('local')(req, res, this);
+                res.json(account);
             }
-        },
-        function(err, account) {
-            res.send([err, account])
         }
     );
+});
+
+router.post('/login', passport.authenticate('local'), function(req, res, next) {
+    res.json(req.user);
 });
 
 module.exports = router;

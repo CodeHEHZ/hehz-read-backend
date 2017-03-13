@@ -26,8 +26,11 @@ app.use(express.static(path.join(__dirname, 'views')));
 app.use(require('express-session')({
     secret: 'www',
     resave: true,
-    saveUninitialzed: true
+    saveUninitialized: true
 }));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use('/', index);
 app.use('/user', user);
@@ -36,9 +39,6 @@ let Account = require('./api/schemas').Account;
 passport.use(new LocalStrategy(Account.authenticate()));
 passport.serializeUser(Account.serializeUser());
 passport.deserializeUser(Account.deserializeUser());
-
-app.use(passport.initialize());
-app.use(passport.session());
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -54,8 +54,7 @@ app.use(function(err, req, res, next) {
     res.locals.error = req.app.get('env') === 'development' ? err : {};
 
     // render the error page
-    res.status(err.status || 500);
-    res.render('error');
+    res.status(err.status || 500).send(err.message);
 });
 
 module.exports = app;
