@@ -6,7 +6,9 @@ let express = require('express'),
     bodyParser = require('body-parser'),
     mongoose = require('./api/const/db'),
     passport = require('passport'),
-    LocalStrategy = require('passport-local').Strategy;
+    LocalStrategy = require('passport-local').Strategy,
+    session = require('express-session'),
+    RedisStore = require('connect-redis')(session);
 
 let index = require('./api'),
     user = require('./api/user');
@@ -20,10 +22,11 @@ app.use(express.static(__dirname + '/views'));
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'views')));
-app.use(require('express-session')({
+app.use(session({
+    store: new RedisStore(),
     secret: 'www',
     resave: true,
     saveUninitialized: true
@@ -35,7 +38,7 @@ app.use(passport.session());
 app.use('/', index);
 app.use('/user', user);
 
-let Account = require('./api/schemas').Account;
+let Account = require('./api/schema').Account;
 passport.use(new LocalStrategy(Account.authenticate()));
 passport.serializeUser(Account.serializeUser());
 passport.deserializeUser(Account.deserializeUser());
