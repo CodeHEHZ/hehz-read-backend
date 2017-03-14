@@ -11,7 +11,8 @@ let express = require('express'),
     RedisStore = require('connect-redis')(session);
 
 let index = require('./api'),
-    user = require('./api/user');
+    user = require('./api/user'),
+    group = require('./api/group');
 
 
 let app = express();
@@ -37,6 +38,7 @@ app.use(passport.session());
 
 app.use('/', index);
 app.use('/user', user);
+app.use('/group', group);
 
 let Account = require('./api/schema').Account;
 passport.use(new LocalStrategy(Account.authenticate()));
