@@ -1,8 +1,27 @@
 /**
  * @file 错误检测器
- * 当有错误时便会进行回答
+ * 当有错误时进行回答
  *
- * @param res
+ * @param {Object} res 服务器响应
+ *
+ * @example
+ * let CheckError = require('../util/checkError')
+ *
+ * router.get('/', function(req, res, next) {
+ *     let no = new CheckError(res).check;
+ *
+ *     Step(
+ *         function() {
+ *             Account.find({}, this);
+ *         },
+ *         function(err, accounts) {
+ *             if (no(err)) {
+ *                 Do something...
+ *             }
+ *         }
+ *     );
+ * }
+ *
  * @constructor
  */
 
