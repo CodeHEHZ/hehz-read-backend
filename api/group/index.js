@@ -3,6 +3,7 @@
  * @author IncredibLink(incrediblelink@gmail.com)
  *
  * 获取用户组信息：GET /group/:title
+ * 修改用户组权限：PUT /group/:title
  */
 
 let express = require('express'),
@@ -43,15 +44,16 @@ router.get('/:title', function(req, res) {
     );
 });
 
+
 /**
  * 添加/删除用户组权限
  * PUT /group/:title
  *
  * @permission 'ModifyGroupPermission'
  *
- * @param {String}          title       用户组名
- * @param {String}          action      操作（add/delete）
- * @param {String/[String]} permission  权限名
+ * @param {String} title       用户组名
+ * @param {String} action      操作（add/delete）
+ * @param {String} permission  权限名
  *
  * @response 201 修改成功
  * {String}     title       用户组名
@@ -77,6 +79,7 @@ router.put('/:title', ensureLoggedIn, permittedTo('ModifyGroupPermission'), func
 
     Step(
         function() {
+            // 分情况进行删除 / 增加权限
             if (req.body.action == 'delete') {
                 Group.update({ title: req.params.title }, {
                     $pull: { permission: req.body.permission }

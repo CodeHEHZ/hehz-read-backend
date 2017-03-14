@@ -62,7 +62,7 @@ function initialize() {
                 let teacher = new Group({
                     title: 'teacher',
                     permission: ['TakeTest', 'CreateBook', 'CreateQuestion', 'OpenQuiz',
-                        'CloseQuiz', 'ViewStatistics']
+                        'CloseQuiz', 'ViewStatistics', 'ModifyBookInfo']
                 });
                 teacher.save(this);
             } else {
@@ -82,7 +82,7 @@ function initialize() {
                     title: 'manager',
                     permission: ['TakeTest', 'CreateBook', 'CreateQuestion', 'OpenQuiz',
                         'CloseQuiz', 'ViewStatistics', 'AddStudent', 'RemoveStudent',
-                        'AddTeacher', 'RemoveTeacher']
+                        'AddTeacher', 'RemoveTeacher', 'ModifyBookInfo']
                 });
                 manager.save(this);
             } else {
@@ -103,7 +103,7 @@ function initialize() {
                     permission: ['TakeTest', 'CreateBook', 'CreateQuestion', 'OpenQuiz',
                         'CloseQuiz', 'ViewStatistics', 'AddStudent', 'RemoveStudent',
                         'AddTeacher', 'RemoveTeacher', 'AddManager', 'RemoveManager',
-                        'ModifyGroupPermission']
+                        'ModifyGroupPermission', 'ModifyBookInfo']
                 });
                 admin.save(this);
             } else {

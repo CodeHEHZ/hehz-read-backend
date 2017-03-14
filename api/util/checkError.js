@@ -30,7 +30,7 @@ function CheckError(res) {
         if (err) {
             res.status(400).json({
                 error: errorName || err.name,
-                message: errMessage || err.message
+                message: errorMessage || err.message
             });
             return 0;
         } else {
