@@ -1,7 +1,7 @@
 /**
  * @file 用户组 Schema
  *
- * {String} title       用户组名
+ * {String} title       用户组名（student / teacher / manager / admin）
  * {String} permission  权限
  */
 

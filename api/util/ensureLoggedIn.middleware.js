@@ -7,13 +7,14 @@
  */
 
 function ensureLoggedIn(req, res, next) {
-    if (req.user)
+    if (req.user) {
         next();
-    else
+    } else {
         res.json({
             error: 'NotLoggedIn',
             message: '您还未登录。'
         });
+    }
 }
 
 module.exports = ensureLoggedIn;
