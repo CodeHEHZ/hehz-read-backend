@@ -54,8 +54,8 @@ router.get('/:author/:name', function(req, res, next) {
  * 批量获取书本的信息
  * POST /book
  *
- * @param {[String, String]/[[String, String]]} book    书名
- *          [author, name] / [[author, name]]
+ * @param {Object/[Object]} book    书名
+ *         Object: { name: String, author: String }
  *
  * @response 200 查得书本
  * {[Object]}   bookCollection  书的数组
@@ -66,14 +66,14 @@ router.get('/:author/:name', function(req, res, next) {
  * {String}     book.cover      书的封面图片链接
  */
 
-router.post('/', paramValidator('book', 'object'), function(req, res, next) {
+router.post('/', paramValidator(['book', 'object']), function(req, res, next) {
     let no = new CheckError(res).check;
 
     Step(
         function() {
-            // 如果客户端只以单层数组的格式请求了一本书的信息，则先将该数组转为一个双层数组，
+            // 如果客户端只以对象的格式请求了一本书的信息，则先将该对象放进一个数组，
             // 使其与批量请求多个书本的情况共用一套逻辑
-            if (req.body.book.length == 1) {
+            if (req.body.book.author) {
                 req.body.book = [req.body.book];
             }
             let group = this.group();
