@@ -18,7 +18,7 @@ let express = require('express'),
 
 /**
  * 获取单个书本的信息
- * GET /book/:name
+ * GET /book/:author/:name
  *
  * @param {String}  name    书名
  * @param {String}  author  作者
@@ -105,7 +105,7 @@ router.post('/', paramValidator('book', 'object'), function(req, res, next) {
  * @param {String}      cover       书的封面图片链接
  *
  * @response 201 成功创建图书
- * {Object} book    书的信息
+ * {Object} book    书本信息
  *
  * @response 400 已有同名图书
  * {String} message 提示信息
@@ -152,5 +152,58 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
 });
 
 
+/**
+ * 修改书本信息
+ * PUT /book/:author/:name
+ *
+ * @permission 'ModifyBookInfo'
+ *
+ * 以下悉为可选参数
+ * @param {String}      name        书名
+ * @param {String}      author      作者
+ * @param {[String]}    category    种类
+ * @param {String}      cover       书的封面图片链接
+ *
+ * @response 201 已修改
+ * {Object} book    书本信息
+ *
+ * @response 404 未找到书本
+ * {String} error   错误名
+ * {String} message 错误信息
+ */
+
+router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), function(req, res, next) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            Book.findOne({
+                name: req.params.name,
+                author: req.params.author
+            }, this);
+        },
+        function(err, book) {
+            if (no(err)) {
+                if (!book) {
+                    res.status(404).json({
+                        error: 'BookNotFound',
+                        message: 'The book to modify is not found.'
+                    });
+                } else {
+                    let update = {};
+                    for (let item of ['name', 'author', 'category', 'cover']) {
+                        update[item] = req.body[item] || book[item];
+                    }
+                    book.update(update, this);
+                }
+            }
+        },
+        function(err, info) {
+            if (no(err)) {
+                res.status(201).json(info);
+            }
+        }
+    );
+});
 
 module.exports = router;
