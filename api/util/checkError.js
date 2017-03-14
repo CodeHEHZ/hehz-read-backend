@@ -2,7 +2,7 @@
  * @file 错误检测器
  * 当有错误时进行回答
  *
- * @param {Object} res 服务器响应
+ * @param {Object} res  服务器响应
  *
  * @example
  * let CheckError = require('../util/checkError')

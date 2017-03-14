@@ -102,7 +102,8 @@ function initialize() {
                     title: 'admin',
                     permission: ['TakeTest', 'CreateBook', 'CreateQuestion', 'OpenQuiz',
                         'CloseQuiz', 'ViewStatistics', 'AddStudent', 'RemoveStudent',
-                        'AddTeacher', 'RemoveTeacher', 'AddManager', 'RemoveManager']
+                        'AddTeacher', 'RemoveTeacher', 'AddManager', 'RemoveManager',
+                        'ModifyGroupPermission']
                 });
                 admin.save(this);
             } else {
