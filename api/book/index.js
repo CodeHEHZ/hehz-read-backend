@@ -2,7 +2,7 @@
  * @file 图书接口
  * @author IncredibLink(incrediblelink@gmail.com)
  *
- * 获取单个书本的信息：GET  /book/:name
+ * 获取单个书本的信息：GET  /book/:author/:name
  * 批量获取书本的信息：POST /book
  */
 
@@ -21,6 +21,7 @@ let express = require('express'),
  * GET /book/:name
  *
  * @param {String}  name    书名
+ * @param {String}  author  作者
  *
  * @response 200 查得书本
  * {String}     name        书名
@@ -30,12 +31,15 @@ let express = require('express'),
  * {String}     cover       书的封面图片链接
  */
 
-router.get('/:name', function(req, res, next) {
+router.get('/:author/:name', function(req, res, next) {
     let no = new CheckError(res).check;
 
     Step(
         function() {
-            Book.findOne({ name: req.params.name }, 'name author open category cover', this);
+            Book.findOne({
+                name: req.params.name,
+                author: req.params.author
+            }, 'name author open category cover', this);
         },
         function(err, book) {
             if (no(err)) {
@@ -50,7 +54,8 @@ router.get('/:name', function(req, res, next) {
  * 批量获取书本的信息
  * POST /book
  *
- * @param {String/[String]} book    书名
+ * @param {[String, String]/[[String, String]]} book    书名
+ *          [author, name] / [[author, name]]
  *
  * @response 200 查得书本
  * {[Object]}   bookCollection  书的数组
@@ -61,19 +66,22 @@ router.get('/:name', function(req, res, next) {
  * {String}     book.cover      书的封面图片链接
  */
 
-router.post('/', function(req, res, next) {
+router.post('/', paramValidator('book', 'object'), function(req, res, next) {
     let no = new CheckError(res).check;
 
     Step(
         function() {
-            // 如果客户端只以字符串格式请求了一本书的信息，则先将该字符串转为一个数组，
+            // 如果客户端只以单层数组的格式请求了一本书的信息，则先将该数组转为一个双层数组，
             // 使其与批量请求多个书本的情况共用一套逻辑
-            if (typeof(req.body.book) == 'string') {
+            if (req.body.book.length == 1) {
                 req.body.book = [req.body.book];
             }
             let group = this.group();
             for (let book of req.body.book) {
-                Book.findOne({ name: book }, 'name author open category cover', group());
+                Book.findOne({
+                    name: book.name,
+                    author: book.author
+                }, 'name author open category cover', group());
             }
         },
         function(err, books) {
@@ -101,7 +109,6 @@ router.post('/', function(req, res, next) {
  *
  * @response 400 已有同名图书
  * {String} message 提示信息
- * 这种依赖书名来查重的方法还有待商榷，但暂时仍以此判定吧
  */
 
 router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
@@ -110,7 +117,10 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
 
     Step(
         function() {
-            Book.findOne({ name: req.body.name }, this);
+            Book.findOne({
+                name: req.body.name,
+                author: req.body.author
+            }, this);
         },
         function(err, result) {
             if (no(err)) {
@@ -140,5 +150,7 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
         }
     )
 });
+
+
 
 module.exports = router;
