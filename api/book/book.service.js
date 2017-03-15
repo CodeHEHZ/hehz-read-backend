@@ -1,9 +1,9 @@
 /**
  * @file 关于书本的各种服务
  *
- * @function hash(author, name)
+ * @function hash(author, name, mode)
  * @function necessaryInfo(book)
- * @function getSingleBook(author, name(, hash), cb)
+ * @function getSingleBook(author, name, mode(, hash), cb)
  */
 
 let _ = require('lodash'),
@@ -15,7 +15,7 @@ let _ = require('lodash'),
 let BookService = {
     /**
      * @function hash
-     * 生成图书的 md5 哈希
+     * 根据模式生成图书的 md5 哈希
      *
      * @param author    作者
      * @param book      书名
@@ -32,7 +32,7 @@ let BookService = {
     /**
      * @function necessaryInfo
      * 剔除不需要的、或用户不能看见的信息
-     * 仅保留 'name'、'author'、'open'、'category'、'cover' 字段
+     * 仅保留 'name'、'author'、'open'、'category'、'cover'、'_id' 字段
      *
      * @param {Object|[Object]} book 图书信息
      *
@@ -43,10 +43,10 @@ let BookService = {
         let answer = [];
         if (_.isArray(book)) {
             for (let i = 0; i < book.length; i++) {
-                answer[i] = _.pick(book[i], ['name', 'author', 'open', 'category', 'cover']);
+                answer[i] = _.pick(book[i], ['name', 'author', 'open', 'category', 'cover', '_id']);
             }
         } else {
-            answer = _.pick(book, ['name', 'author', 'open', 'category', 'cover'])
+            answer = _.pick(book, ['name', 'author', 'open', 'category', 'cover', '_id'])
         }
         return answer;
     },
