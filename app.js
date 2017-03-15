@@ -13,7 +13,8 @@ let express = require('express'),
 let index = require('./api'),
     user = require('./api/user'),
     group = require('./api/group'),
-    book = require('./api/book');
+    book = require('./api/book'),
+    question = require('./api/question');
 
 
 let app = express();
@@ -43,6 +44,7 @@ app.use('/', index);
 app.use('/user', user);
 app.use('/group', group);
 app.use('/book', book);
+app.use('/question', question);
 
 let Account = require('./api/schema').Account;
 passport.use(new LocalStrategy(Account.authenticate()));

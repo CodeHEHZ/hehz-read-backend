@@ -1,3 +1,11 @@
+/**
+ * @file 关于题目的各种服务
+ *
+ * @function hash(id, mode)
+ * @function necessaryInfo(question)
+ * @function getSingleQuestion(id, mode(, givenHash), cb)
+ */
+
 let Step = require('step'),
     _ = require('lodash'),
     cache = require('../util/cacheSystem'),
@@ -5,11 +13,36 @@ let Step = require('step'),
     Question = require('../schema').Question;
 
 let QuestionService = {
+    /**
+     * @function hash
+     * 根据模式生成题目的 md5 哈希
+     *
+     * @param {String}  id      题目的 MongoDB _id
+     * @param {String}  mode    获取题目的模式('safe'|'original')
+     * @returns {String}        生成的哈希
+     */
+
     hash(id, mode) {
-        return mode == 'safe'
-            ? md5([id, 'safe'])
-            : md5(id);
+        switch (mode) {
+            case 'safe':
+                return md5([id, 'safe']);
+                break;
+            case 'original':
+                return md5(id);
+                break;
+            default:
+                return md5(id);
+        }
     },
+
+
+    /**
+     * @function necessaryInfo
+     * 除去题目中的答案
+     *
+     * @param {Object|[Object]} question    题目
+     * @returns {Object|[Object]}           除去了答案的题目
+     */
 
     necessaryInfo(question) {
         let answer = [];
@@ -24,22 +57,49 @@ let QuestionService = {
         return answer;
     },
 
-    getSingleQuestion(id, mode, cb) {
+
+    /**
+     * @function getSingleQuestion
+     * 获取单个题目
+     *
+     * @param {String}      id          题目的 MongoDB _id
+     * @param {String}      mode        获取题目的模式('safe'|'original')
+     * @param {String}      givenHash   （可选）题目 _id 的哈希
+     * @param {Function}    cb          回调函数
+     *
+     * @callback(err, question)
+     * {Error}  err         错误信息，如无错则为 null
+     * {Object} question    题目，如未找到则为 null
+     */
+
+    getSingleQuestion(id, mode, givenHash, cb) {
         let _this = this,
             _question,
             _safeQuestion,
             _hash,
             _safeHash;
 
-        if (mode == 'safe') {
-            _safeHash = hash(id, 'safe');
-        } else {
-            _hash = hash(id);
+        // 如果没有提供 givenHash，则将 givenHash 设为回调函数
+        if (_.isFunction(givenHash)) {
+            cb = givenHash;
         }
 
         Step(
             function() {
-                cache.get(_hash || _safeHash, this);
+                if (!_.isFunction(givenHash)) {
+                    cache.get(givenHash, this);
+                } else {
+                    this();
+                }
+            },
+            function(err, question) {
+                if (!err) {
+                    if (question) {
+                        cb(null, question)
+                    } else {
+                        cache.get(_hash || _safeHash, this);
+                    }
+                }
             },
             function(err, question) {
                 if (!err) {
@@ -60,10 +120,10 @@ let QuestionService = {
                         let group = this.group();
                         if (mode == 'safe') {
                             cache.set(_safeHash, _question._id, _safeQuestion, group());
-                            cache.set(hash(id), _question._id, _question, group());
+                            cache.set(_this.hash(id, 'original'), _question._id, _question, group());
                         } else {
                             cache.set(_hash, _question._id, _question, group());
-                            cache.set(hash(id, 'safe'), _question._id, _safeQuestion, group());
+                            cache.set(_this.hash(id, 'safe'), _question._id, _safeQuestion, group());
                         }
                     } else {
                         cb({

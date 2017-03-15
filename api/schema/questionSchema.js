@@ -2,6 +2,7 @@
  * @file 题目 Schema
  *
  * {String}     question            题目
+ * {String}     book                所属书的 MongoDB _id
  * {[Object]}   option              选项
  * {String}     option[n].label     选项标签，如 "A"、"B"、"C"、"D"
  * {String}     option[n].text      选项内容，如 "生动形象地描述了雷叔丰富多彩的老年生活"
@@ -14,7 +15,8 @@ let mongoose = require('../const/db'),
 let Question = new Schema({
     question: String,
     option: Schema.Types.Mixed,
-    answer: String
+    answer: String,
+    book: String
 });
 
 module.exports = mongoose.model('Question', Question);
