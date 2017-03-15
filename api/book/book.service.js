@@ -1,9 +1,9 @@
 /**
  * @file 关于书本的各种服务
  *
- * @function hash(author, name)
+ * @function hash(author, name, mode)
  * @function necessaryInfo(book)
- * @function getSingleBook(author, name(, hash), cb)
+ * @function getSingleBook(author, name, mode(, hash), cb)
  */
 
 let _ = require('lodash'),
@@ -15,21 +15,24 @@ let _ = require('lodash'),
 let BookService = {
     /**
      * @function hash
-     * 生成图书的 md5 哈希
+     * 根据模式生成图书的 md5 哈希
      *
      * @param author    作者
      * @param book      书名
+     * @param mode      模式('safe'/'original')
      */
 
-    hash(author, book) {
-        return md5([author, book]);
+    hash(author, book, mode) {
+        return mode == 'safe'
+            ? md5([author, book, 'safe'])
+            : md5([author, book]);
     },
 
 
     /**
      * @function necessaryInfo
      * 剔除不需要的、或用户不能看见的信息
-     * 仅保留 'name'、'author'、'open'、'category'、'cover' 字段
+     * 仅保留 'name'、'author'、'open'、'category'、'cover'、'_id' 字段
      *
      * @param {Object|[Object]} book 图书信息
      *
@@ -40,10 +43,10 @@ let BookService = {
         let answer = [];
         if (_.isArray(book)) {
             for (let i = 0; i < book.length; i++) {
-                answer[i] = _.pick(book[i], ['name', 'author', 'open', 'category', 'cover']);
+                answer[i] = _.pick(book[i], ['name', 'author', 'open', 'category', 'cover', '_id']);
             }
         } else {
-            answer = _.pick(book, ['name', 'author', 'open', 'category', 'cover'])
+            answer = _.pick(book, ['name', 'author', 'open', 'category', 'cover', '_id'])
         }
         return answer;
     },
@@ -72,9 +75,7 @@ let BookService = {
         // 分情况哈希
         if (_.isFunction(hash)) {
             cb = hash;
-            hash = mode == 'safe'
-                ? md5([author, name, 'safe'])
-                : md5([author, name]);
+            hash = _this.hash(author, name, mode);
         }
 
         Step(
@@ -113,10 +114,10 @@ let BookService = {
                         // 这段写得好恶心...
                         if (mode == 'safe') {
                             cache.set(hash, _book._id, _safeBook, group());
-                            cache.set(md5([author, name]), _book._id, book, group());
+                            cache.set(_this.hash(author, name, 'original'), _book._id, book, group());
                         } else {
                             cache.set(hash, _book._id, _book, group());
-                            cache.set(md5([author, name, 'safe']), _book._id, _safeBook, group());
+                            cache.set(_this.hash(author, name, 'safe'), _book._id, _safeBook, group());
                         }
                     } else {
                         cb({
