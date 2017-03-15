@@ -8,7 +8,7 @@
  * @property {[String]} req.user.permission 存储用户权限的数组
  */
 
-let Group = require('../schema').Group,
+let GroupService = require('../group/group.service'),
     CheckError = require('./checkError'),
     Step = require('step');
 
@@ -19,7 +19,7 @@ function permittedTo(permission) {
         if (req.user && req.user.group) {
             Step(
                 function() {
-                    Group.findOne({ title: req.user.group }, this);
+                    GroupService.getGroupInfo(req.user.group, this);
                 },
                 function(err, group) {
                     if (no(err) && group.permission.includes(permission)) {

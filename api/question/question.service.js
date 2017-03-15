@@ -25,13 +25,13 @@ let QuestionService = {
     hash(id, mode) {
         switch (mode) {
             case 'safe':
-                return md5([id, 'safe']);
+                return md5({ question: [id, 'safe'] });
                 break;
             case 'original':
-                return md5(id);
+                return md5({ question: id });
                 break;
             default:
-                return md5(id);
+                return md5({ question: id });
         }
     },
 

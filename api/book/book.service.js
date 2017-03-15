@@ -24,8 +24,8 @@ let BookService = {
 
     hash(author, book, mode) {
         return mode == 'safe'
-            ? md5([author, book, 'safe'])
-            : md5([author, book]);
+            ? md5({ book: [author, book, 'safe'] })
+            : md5({ book: [author, book] });
     },
 
 

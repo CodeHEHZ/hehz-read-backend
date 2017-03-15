@@ -7,12 +7,14 @@
  * 若只是想了解本缓存系统，只需阅读「Redis 字符串」及之前部分与「Redis 集合」部分
  *
  * 各类 Object 的 hash 方法：
- * - 图书：md5([author, name])
- * - 经剔除部分信息的图书：md5([author, name, 'safe'])
- * - 用户：md5(username)
- * - 题目：md5(id)
- * - 不含答案的题目：md5([id, 'safe'])
- * - 用户组：md5(title)
+ * - 图书：md5({ book: [author, name] })
+ * - 经剔除部分信息的图书：md5({ book: [author, name, 'safe'] })
+ * - 多本图书：md5({ book: [[author, name]] })
+ * - 多本经剔除部分信息的图书：md5({ book: [[author, name], 'safe'] })
+ * - 用户：md5({ account: username })
+ * - 题目：md5({ question: id })
+ * - 不含答案的题目：md5({ question: [id, 'safe'] })
+ * - 用户组：md5({ group: title })
  *
  * 缓存的使用方式：
  * - 获取 get
