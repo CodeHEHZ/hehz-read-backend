@@ -19,10 +19,13 @@ let BookService = {
      *
      * @param author    作者
      * @param book      书名
+     * @param mode      模式('safe'/'original')
      */
 
-    hash(author, book) {
-        return md5([author, book]);
+    hash(author, book, mode) {
+        return mode == 'safe'
+            ? md5([author, book, 'safe'])
+            : md5([author, book]);
     },
 
 
@@ -72,9 +75,7 @@ let BookService = {
         // 分情况哈希
         if (_.isFunction(hash)) {
             cb = hash;
-            hash = mode == 'safe'
-                ? md5([author, name, 'safe'])
-                : md5([author, name]);
+            hash = _this.hash(author, name, mode);
         }
 
         Step(
@@ -113,10 +114,10 @@ let BookService = {
                         // 这段写得好恶心...
                         if (mode == 'safe') {
                             cache.set(hash, _book._id, _safeBook, group());
-                            cache.set(md5([author, name]), _book._id, book, group());
+                            cache.set(_this.hash(author, name, 'original'), _book._id, book, group());
                         } else {
                             cache.set(hash, _book._id, _book, group());
-                            cache.set(md5([author, name, 'safe']), _book._id, _safeBook, group());
+                            cache.set(_this.hash(author, name, 'safe'), _book._id, _safeBook, group());
                         }
                     } else {
                         cb({

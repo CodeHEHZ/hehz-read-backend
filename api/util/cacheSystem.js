@@ -8,8 +8,10 @@
  *
  * 各类 Object 的 hash 方法：
  * - 图书：md5([author, name])
+ * - 经剔除部分信息的图书：md5([author, name, 'safe'])
  * - 用户：md5(username)
  * - 问题：md5(id)
+ * - 不含答案的问题：md5([id, 'safe'])
  * - 用户组：md5(title)
  *
  * 缓存的使用方式：
