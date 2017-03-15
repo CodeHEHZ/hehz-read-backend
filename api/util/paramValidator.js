@@ -2,7 +2,7 @@
  * @file 用于检验用户请求的参数的中间件
  * 若请求的所有参数都符合要求，则可顺利进入下一路由环节。
  *
- * @param {[String/[String, String]]}    params  应有的参数/[应有的参数/预期的类型]
+ * @param {[String|[String, String]]}    params  应有的参数|[应有的参数, 预期的类型]
  *                                      （不限参数数量）
  *
  * @example
