@@ -221,9 +221,11 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
         _book;
 
     Step(
+        // 先找书
         function() {
             BookService.getSingleBook(req.params.author, req.params.name, 'original', this);
         },
+        // 找到了就先清空书的相关缓存
         function(err, book) {
             if (no(err)) {
                 if (!book) {
@@ -238,6 +240,7 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
                 }
             }
         },
+        // 更新数据库中书的信息
         function(err) {
             if (no(err)) {
                 let update = {};

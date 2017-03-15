@@ -85,6 +85,7 @@ let QuestionService = {
         }
 
         Step(
+            // 先看看用户提供的 Hash 能不能从缓存中找到东西
             function() {
                 if (!_.isFunction(givenHash)) {
                     cache.get(givenHash, this);
@@ -92,6 +93,7 @@ let QuestionService = {
                     this();
                 }
             },
+            // 找得到就返回，找不到就根据模式查询缓存
             function(err, question) {
                 if (!err) {
                     if (question) {
@@ -101,6 +103,7 @@ let QuestionService = {
                     }
                 }
             },
+            // 还是找不到，就从数据库中找
             function(err, question) {
                 if (!err) {
                     if (question) {
@@ -112,6 +115,7 @@ let QuestionService = {
                     cb(err);
                 }
             },
+            // 如果找得到就写入缓存
             function(err, question) {
                 if (!err) {
                     if (question) {
@@ -135,6 +139,7 @@ let QuestionService = {
                     cb(err);
                 }
             },
+            // 根据模式返回
             function(err) {
                 cb(err, mode == 'safe' ? _safeQuestion : _question);
             }

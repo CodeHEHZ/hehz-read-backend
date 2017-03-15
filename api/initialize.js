@@ -6,7 +6,16 @@
 
 let Step = require('step'),
     Account = require('./schema').Account,
-    Group = require('./schema').Group;
+    Group = require('./schema').Group,
+    _ = require('lodash');
+
+let permissionStudent = ['TakeTest'],
+    permissionTeacher = _.flattenDeep([permissionStudent, 'CreateBook', 'CreateQuestion', 'OpenQuiz',
+        'CloseQuiz', 'ViewStatistics', 'ModifyBookInfo']),
+    permissionManager = _.flattenDeep([permissionTeacher, 'AddStudent', 'RemoveStudent',
+        'AddTeacher', 'RemoveTeacher']),
+    permissionAdmin = _.flattenDeep([permissionManager, 'AddManager', 'RemoveManager',
+        'ModifyGroupPermission']);
 
 function initialize() {
     Step(
@@ -43,7 +52,7 @@ function initialize() {
             if (!group) {
                 let student = new Group({
                     title: 'student',
-                    permission: ['TakeTest']
+                    permission: permissionStudent
                 });
                 student.save(this);
             } else {
@@ -61,8 +70,7 @@ function initialize() {
             if (!group) {
                 let teacher = new Group({
                     title: 'teacher',
-                    permission: ['TakeTest', 'CreateBook', 'CreateQuestion', 'OpenQuiz',
-                        'CloseQuiz', 'ViewStatistics', 'ModifyBookInfo']
+                    permission: permissionTeacher
                 });
                 teacher.save(this);
             } else {
@@ -80,9 +88,7 @@ function initialize() {
             if (!group) {
                 let manager = new Group({
                     title: 'manager',
-                    permission: ['TakeTest', 'CreateBook', 'CreateQuestion', 'OpenQuiz',
-                        'CloseQuiz', 'ViewStatistics', 'AddStudent', 'RemoveStudent',
-                        'AddTeacher', 'RemoveTeacher', 'ModifyBookInfo']
+                    permission: permissionManager
                 });
                 manager.save(this);
             } else {
@@ -100,10 +106,7 @@ function initialize() {
             if (!group) {
                 let admin = new Group({
                     title: 'admin',
-                    permission: ['TakeTest', 'CreateBook', 'CreateQuestion', 'OpenQuiz',
-                        'CloseQuiz', 'ViewStatistics', 'AddStudent', 'RemoveStudent',
-                        'AddTeacher', 'RemoveTeacher', 'AddManager', 'RemoveManager',
-                        'ModifyGroupPermission', 'ModifyBookInfo']
+                    permission: permissionAdmin
                 });
                 admin.save(this);
             } else {
