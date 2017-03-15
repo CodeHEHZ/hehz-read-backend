@@ -13,7 +13,11 @@ let express = require('express'),
     ensureLoggedIn = require('../util/ensureLoggedIn.middleware'),
     permittedTo = require('../util/permittedTo.middleware'),
     paramValidator = require('../util/paramValidator'),
-    Book = require('../schema').Book;
+    cache = require('../util/cacheSystem'),
+    BookService = require('./book.service'),
+    Book = require('../schema').Book,
+    md5 = require('object-hash').MD5,
+    _ = require('lodash');
 
 
 /**
@@ -31,19 +35,16 @@ let express = require('express'),
  * {String}     cover       书的封面图片链接
  */
 
-router.get('/:author/:name', function(req, res, next) {
+router.get('/:author/:name', function(req, res) {
     let no = new CheckError(res).check;
 
     Step(
         function() {
-            Book.findOne({
-                name: req.params.name,
-                author: req.params.author
-            }, 'name author open category cover', this);
+            BookService.getSingleBook(req.params.author, req.params.name, 'safe', this);
         },
         function(err, book) {
             if (no(err)) {
-                res.status(200).json(book);
+                res.status(200).json(BookService.necessaryInfo(book));
             }
         }
     );
@@ -54,7 +55,7 @@ router.get('/:author/:name', function(req, res, next) {
  * 批量获取书本的信息
  * POST /book
  *
- * @param {Object/[Object]} book    书名
+ * @param {Object|[Object]} book    书名
  *         Object: { name: String, author: String }
  *
  * @response 200 查得书本
@@ -69,27 +70,70 @@ router.get('/:author/:name', function(req, res, next) {
 router.post('/', paramValidator(['book', 'object']), function(req, res, next) {
     let no = new CheckError(res).check;
 
-    Step(
-        function() {
-            // 如果客户端只以对象的格式请求了一本书的信息，则先将该对象放进一个数组，
-            // 使其与批量请求多个书本的情况共用一套逻辑
-            if (req.body.book.author) {
-                req.body.book = [req.body.book];
+    // 如果客户端只以对象的格式请求了一本书的信息...
+    if (req.body.book.author) {
+        Step(
+            function() {
+                BookService.getSingleBook(req.body.book.author, req.body.book.name, 'safe', this);
+            },
+            function(err, book) {
+                if (no(err)) {
+                    res.status(200).json(BookService.necessaryInfo(book));
+                }
             }
-            let group = this.group();
-            for (let book of req.body.book) {
-                Book.findOne({
-                    name: book.name,
-                    author: book.author
-                }, 'name author open category cover', group());
+        );
+    // 不然的话...
+    } else {
+        let hash = md5(req.body.book.sort()),
+            _safeBooks,
+            _safeHash;
+
+        Step(
+            function() {
+                cache.get(hash, this);
+            },
+            function(err, result) {
+                if (no(err)) {
+                    if (result) {
+                        res.status(200).json(result);
+                    } else {
+                        _safeHash = md5([req.body.book, 'safe']);
+                        cache.get(_safeHash, this);
+                    }
+                }
+            },
+            function(err, result) {
+                if (no(err)) {
+                    if (result) {
+                        res.status(200).json(result);
+                    } else {
+                        let group = this.group();
+                        for (let book of req.body.book) {
+                            BookService.getSingleBook(book.author, book.name, 'original', group());
+                        }
+                    }
+                }
+            },
+            function(err, books) {
+                if (no(err)) {
+                    _safeBooks = BookService.necessaryInfo(books);
+                    let idSet = [];
+                    for (let i = 0; i < books.length; i++) {
+                        idSet[i] = books[i]._id;
+                    }
+
+                    let group = this.group();
+                    cache.set(hash, idSet, books, group());
+                    cache.set(_safeHash, idSet, _safeBooks, group());
+                }
+            },
+            function(err) {
+                if (no(err)) {
+                    res.status(200).json(_safeBooks);
+                }
             }
-        },
-        function(err, books) {
-            if (no(err)) {
-                res.status(200).json(books);
-            }
-        }
-    );
+        );
+    }
 });
 
 
@@ -165,7 +209,7 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
  * @param {String}      cover       书的封面图片链接
  *
  * @response 201 已修改
- * {Object} book    书本信息
+ * {String} message 提示信息
  *
  * @response 404 未找到书本
  * {String} error   错误名
@@ -173,14 +217,12 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
  */
 
 router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), function(req, res, next) {
-    let no = new CheckError(res).check;
+    let no = new CheckError(res).check,
+        _book;
 
     Step(
         function() {
-            Book.findOne({
-                name: req.params.name,
-                author: req.params.author
-            }, this);
+            BookService.getSingleBook(req.params.author, req.params.name, 'original', this);
         },
         function(err, book) {
             if (no(err)) {
@@ -190,17 +232,26 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
                         message: 'The book to modify is not found.'
                     });
                 } else {
-                    let update = {};
-                    for (let item of ['name', 'author', 'category', 'cover']) {
-                        update[item] = req.body[item] || book[item];
-                    }
-                    book.update(update, this);
+                    _book = book;
+                    cache.update(_book._id, this);
+                    this();
                 }
             }
         },
-        function(err, info) {
+        function(err) {
             if (no(err)) {
-                res.status(201).json(info);
+                let update = {};
+                for (let item of ['name', 'author', 'category', 'cover']) {
+                    update[item] = req.body[item] || _book[item];
+                }
+                Book.update({ _id: _book._id }, { $set: update }, this);
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: 'Modified.'
+                });
             }
         }
     );
