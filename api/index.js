@@ -6,8 +6,6 @@
 let express = require('express');
 let router = express.Router();
 
-// 雷叔
-
 /* GET home page. */
 router.get('/', function(req, res, next) {
     res.render('index');
