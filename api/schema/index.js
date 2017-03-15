@@ -8,11 +8,13 @@
 
 let Account = require('./accountSchema'),
     Group = require('./groupSchema'),
-    Book = require('./bookSchema');
+    Book = require('./bookSchema'),
+    Question = require('./questionSchema');
 
-// 请熟悉 JavaScript ES6 规范的写法
+// 请熟悉 JavaScript ES6 规范
 module.exports = {
     Account,
     Group,
-    Book
+    Book,
+    Question
 };
