@@ -6,6 +6,8 @@
  * 登录：POST /login
  * 登出：GET  /logout
  * 更改密码：PUT /password
+ * 获取用户信息：GET /:username
+ * 修改用户所属的用户组：PUT /:username/group
  */
 
 let express = require('express'),
@@ -15,6 +17,10 @@ let express = require('express'),
     passport = require('passport'),
     Account = require('../schema').Account,
     Group = require('../schema').Group,
+    GroupService = require('../group/group.service'),
+    UserService = require('./user.service'),
+    cache = require('../util/cacheSystem'),
+    permittedTo = require('../util/permittedTo.middleware'),
     CheckError = require('../util/checkError');
 
 
@@ -135,8 +141,15 @@ router.put('/password', ensureLoggedIn, function(req, res, next) {
         function (err, account) {
             // 验证现在的密码是否正确
             if (no(err)) {
-                _account = account;
-                _account.authenticate(req.body.presentPassword, this);
+                if (account) {
+                    _account = account;
+                    _account.authenticate(req.body.presentPassword, this);
+                } else {
+                    res.status(404).json({
+                        name: 'AccountNotFound',
+                        message: 'The account doesn\'t exist.'
+                    });
+                }
             }
         },
         function(i, account, err) {
@@ -163,5 +176,96 @@ router.put('/password', ensureLoggedIn, function(req, res, next) {
 });
 
 
+/**
+ * 获取用户信息
+ * GET /user/:username
+ *
+ * @param {String}  username    用户名
+ *
+ * @response 200 获取成功
+ * {Object} user    用户信息
+ */
+
+router.get('/:username', function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            UserService.getSingleUser(req.params.username, 'safe', this);
+        },
+        function(err, user) {
+            if (no(err)) {
+                res.status(200).json(user);
+            }
+        }
+    );
+});
+
+
+/**
+ * 修改用户所属的用户组
+ * PUT /user/:username/group
+ *
+ * @param {String}  usernmae    用户名
+ * @param {String}  group       用户组
+ *
+ * @response 201 修改成功
+ * {String} message 提示信息
+ */
+
+router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), function(req, res, next) {
+    // 只有超级管理员可以设他人用户组为超级管理员
+    // 只有有「设他人为管理员」的用户组可以社他人用户组为管理员
+    if (req.body.group == 'admin' && req.user.group != 'admin'
+        || (req.body.group == 'manager' && !req.user.permission.includes('ChangeManager'))) {
+        return res.status(400).json({
+            error: 'PermissionDenied',
+            message: 'You don\'t have the permission to do this.'
+        });
+    }
+
+    let no = new CheckError(res).check,
+        _user;
+
+    Step(
+        function() {
+            GroupService.getGroupInfo(req.body.group, this);
+        },
+        function(err) {
+            if (no(err)) {
+                Account.findByUsername(req.params.username, this);
+            }
+        },
+        function(err, user) {
+            if (no(err)) {
+                if (user) {
+                    _user = user;
+                    cache.update(user._id, this);
+                } else {
+                    res.status(404).json({
+                        name: 'AccountNotFound',
+                        message: 'The account doesn\'t exist.'
+                    });
+                }
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                _user.update({
+                    $set: {
+                        group: req.body.group
+                    }
+                }, this);
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: 'Modified.'
+                });
+            }
+        }
+    );
+});
 
 module.exports = router;
