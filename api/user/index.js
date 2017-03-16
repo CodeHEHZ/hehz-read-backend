@@ -8,6 +8,7 @@
  * 更改密码：PUT /password
  * 获取用户信息：GET /:username
  * 修改用户所属的用户组：PUT /:username/group
+ * 修改用户信息（除用户组）：PUT /:username
  */
 
 let express = require('express'),
@@ -15,8 +16,7 @@ let express = require('express'),
     Step = require('step'),
     ensureLoggedIn = require('../util/ensureLoggedIn.middleware'),
     passport = require('passport'),
-    Account = require('../schema').Account,
-    Group = require('../schema').Group,
+    User = require('../schema').User,
     GroupService = require('../group/group.service'),
     UserService = require('./user.service'),
     cache = require('../util/cacheSystem'),
@@ -38,7 +38,7 @@ let express = require('express'),
  */
 
 router.post('/register', function(req, res) {
-    let no = new CheckError(res);
+    let no = new CheckError(res).check;
     
     Step(
         function() {
@@ -47,14 +47,14 @@ router.post('/register', function(req, res) {
                 schoolId: req.body.id,
                 group: req.body.group
             };
-            Account.register(new Account(user), req.body.password, this);
+            User.register(new User(user), req.body.password, this);
         },
-        function(err, account) {
+        function(err, user) {
             if (no(err)) {
                 res.status(201).json({
-                    username: account.username,
-                    group: account.group,
-                    createdTime: account.createdTime
+                    username: user.username,
+                    group: user.group,
+                    createdTime: user.createdTime
                 });
             }
         }
@@ -131,37 +131,45 @@ router.put('/password', ensureLoggedIn, function(req, res, next) {
         return;
     }
 
-    let _account;
+    if (req.body.newPassword == req.body.presentPassword) {
+        res.status(400).json({
+            error: 'SamePasswords',
+            message: '新密码不可以与旧密码相同'
+        });
+        return;
+    }
+
+    let _user;
 
     Step(
         function () {
             // 通过用户名查找用户
-            Account.findByUsername(req.user.username, this);
+            User.findByUsername(req.user.username, this);
         },
-        function (err, account) {
+        function (err, user) {
             // 验证现在的密码是否正确
             if (no(err)) {
-                if (account) {
-                    _account = account;
-                    _account.authenticate(req.body.presentPassword, this);
+                if (user) {
+                    _user = user;
+                    _user.authenticate(req.body.presentPassword, this);
                 } else {
                     res.status(404).json({
-                        name: 'AccountNotFound',
-                        message: 'The account doesn\'t exist.'
+                        name: 'UserNotFound',
+                        message: 'The user doesn\'t exist.'
                     });
                 }
             }
         },
-        function(i, account, err) {
+        function(i, user, err) {
             // 设置新的密码
             if (no(err)) {
-                _account.setPassword(req.body.newPassword, this);
+                _user.setPassword(req.body.newPassword, this);
             }
         },
-        function(err, account) {
+        function(err, user) {
             // 保存修改
             if (no(err)) {
-                account.save(this);
+                user.save(this);
             }
         },
         function(err) {
@@ -206,7 +214,10 @@ router.get('/:username', function(req, res) {
  * 修改用户所属的用户组
  * PUT /user/:username/group
  *
- * @param {String}  usernmae    用户名
+ * @permission 'ChangeUserGroup'
+ * @permission (optional) 'ChangeManager'
+ *
+ * @param {String}  username    用户名
  * @param {String}  group       用户组
  *
  * @response 201 修改成功
@@ -233,7 +244,7 @@ router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), f
         },
         function(err) {
             if (no(err)) {
-                Account.findByUsername(req.params.username, this);
+                User.findByUsername(req.params.username, this);
             }
         },
         function(err, user) {
@@ -243,8 +254,8 @@ router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), f
                     cache.update(user._id, this);
                 } else {
                     res.status(404).json({
-                        name: 'AccountNotFound',
-                        message: 'The account doesn\'t exist.'
+                        name: 'UserNotFound',
+                        message: 'The user doesn\'t exist.'
                     });
                 }
             }
@@ -256,6 +267,64 @@ router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), f
                         group: req.body.group
                     }
                 }, this);
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: 'Modified.'
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 修改用户信息（除用户组）
+ * PUT /user/:username
+ *
+ * @permission 'ModifyUserInfo'
+ *
+ * 以下悉为可选参数
+ * @param {String}      username    用户名
+ * @param {String}      uid         学号
+ */
+
+router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function(req, res) {
+    let no = new CheckError(res).check,
+        operationField = ['username', 'uid'],
+        _user;
+    
+    if (!(req.body.username || req.body.uid)) {
+        return res.status(400).json({
+            error: 'MissingParam(s)',
+            message: '请求缺少某个/某些参数'
+        });
+    }
+    Step(
+        function() {
+            User.findByUsername(req.params.username, this);
+        },
+        function(err, user) {
+            if (no(err)) {
+                if (user) {
+                    _user = user;
+                    cache.update(user._id, this);
+                } else {res.status(404).json({
+                        name: 'UserNotFound',
+                        message: 'The user doesn\'t exist.'
+                    });
+                }
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                let update = {};
+                for (let item of operationField) {
+                    update[item] = req.body[item] || _user[item];
+                }
+                _user.update({ $set: update }, this);
             }
         },
         function(err) {
