@@ -46,10 +46,10 @@ app.use('/group', group);
 app.use('/book', book);
 app.use('/question', question);
 
-let Account = require('./api/schema').Account;
-passport.use(new LocalStrategy(Account.authenticate()));
-passport.serializeUser(Account.serializeUser());
-passport.deserializeUser(Account.deserializeUser());
+let User = require('./api/schema').User;
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

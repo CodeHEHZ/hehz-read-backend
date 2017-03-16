@@ -5,14 +5,14 @@
  */
 
 let Step = require('step'),
-    Account = require('./schema').Account,
+    User = require('./schema').User,
     Group = require('./schema').Group,
     _ = require('lodash');
 
 let permissionStudent = ['TakeTest'],
     permissionTeacher = _.flattenDeep([permissionStudent, 'CreateBook', 'CreateQuestion', 'OpenQuiz',
         'CloseQuiz', 'ViewStatistics', 'ModifyBookInfo']),
-    permissionManager = _.flattenDeep([permissionTeacher, 'ChangeUserGroup']),
+    permissionManager = _.flattenDeep([permissionTeacher, 'ChangeUserGroup', 'ModifyUserInfo']),
     permissionAdmin = _.flattenDeep([permissionManager, 'ChangeManager',
         'ModifyGroupPermission']);
 
@@ -20,24 +20,24 @@ function initialize() {
     Step(
         function() {
             // 查询是否有 admin 用户
-            Account.findByUsername('admin', this);
+            User.findByUsername('admin', this);
         },
-        function(err, account) {
+        function(err, user) {
             // 设 admin 为超级管理员，默认密码为 hehz@2016，已有账号的密码不受影响。
             if (err) throw err;
-            if (account) {
-                account.update({
+            if (user) {
+                user.update({
                     $set: {
                         group: 'admin'
                     }
                 }, this);
             } else {
-                let user = new Account({
+                let user = new User({
                     username: 'admin',
                     group: 'admin',
                     schoolId: 1
                 });
-                Account.register(user, 'hehz@2016', this);
+                User.register(user, 'hehz@2016', this);
             }
         },
         function(err) {
