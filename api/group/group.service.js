@@ -1,5 +1,7 @@
 /**
  * @file 关于用户组的各种服务
+ *
+ * @function getGroupInfo(title, cb)
  */
 
 let cache = require('../util/cacheSystem'),
@@ -14,6 +16,18 @@ let md5 = {
 };
 
 let GroupService = {
+    /**
+     * @function getGroupInfo
+     * 获取用户组信息
+     *
+     * @param {String}      title   用户组组名
+     * @param {Function}    cb      回调函数
+     *
+     * @callback(err, result)
+     * {Error}  err     错误信息，如无错则为 null
+     * {Object} group   用户组信息，如查无则为 null
+     */
+
     getGroupInfo(title, cb) {
         let _group;
 
