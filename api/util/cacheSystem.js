@@ -12,6 +12,7 @@
  * - 多本图书：md5({ book: [[author, name]] })
  * - 多本经剔除部分信息的图书：md5({ book: [[author, name], 'safe'] })
  * - 用户：md5({ account: username })
+ * - 经剔除敏感信息的用户信息：md5({ account: [username, 'safe'] })
  * - 题目：md5({ question: id })
  * - 不含答案的题目：md5({ question: [id, 'safe'] })
  * - 用户组：md5({ group: title })

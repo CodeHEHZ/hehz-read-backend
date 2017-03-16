@@ -49,7 +49,7 @@ let GroupService = {
                     } else {
                         cb({
                             error: 'UserGroupNotFound',
-                            message: '没找到你所在的用户组'
+                            message: '没找到用户组'
                         });
                     }
                 }

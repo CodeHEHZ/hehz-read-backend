@@ -29,8 +29,8 @@ function CheckError(res) {
     this.check = (err, errorName, errorMessage) => {
         if (err) {
             res.status(400).json({
-                error: errorName || err.name,
-                message: errorMessage || err.message
+                error: errorName || err.name || 'UnexpectedError',
+                message: errorMessage || err.message || 'Something wrong happened.'
             });
             return 0;
         } else {
