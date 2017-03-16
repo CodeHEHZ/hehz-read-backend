@@ -84,21 +84,22 @@ router.post('/', paramValidator(['book', 'object']), function(req, res, next) {
         );
     // 不然的话...
     } else {
-        let hash = md5(req.body.book.sort()),
+        req.body.book = req.body.book.sort();
+        let _safeHash = md5({ book: [req.body.book, 'safe'] }),
             _safeBooks,
-            _safeHash;
+            _hash;
 
         Step(
             function() {
-                cache.get(hash, this);
+                cache.get(_safeHash, this);
             },
             function(err, result) {
                 if (no(err)) {
                     if (result) {
                         res.status(200).json(result);
                     } else {
-                        _safeHash = md5([req.body.book, 'safe']);
-                        cache.get(_safeHash, this);
+                        _hash = md5({ book: req.body.book });
+                        cache.get(_hash, this);
                     }
                 }
             },
@@ -123,7 +124,7 @@ router.post('/', paramValidator(['book', 'object']), function(req, res, next) {
                     }
 
                     let group = this.group();
-                    cache.set(hash, idSet, books, group());
+                    cache.set(_hash, idSet, books, group());
                     cache.set(_safeHash, idSet, _safeBooks, group());
                 }
             },
