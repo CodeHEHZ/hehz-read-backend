@@ -6,14 +6,14 @@
  * 然后引用某个 Schema 即可，如 schemas.Account、schemas.Book 等。
  */
 
-let Account = require('./accountSchema'),
+let User = require('./userSchema'),
     Group = require('./groupSchema'),
     Book = require('./bookSchema'),
     Question = require('./questionSchema');
 
 // 请熟悉 JavaScript ES6 规范
 module.exports = {
-    Account,
+    User,
     Group,
     Book,
     Question

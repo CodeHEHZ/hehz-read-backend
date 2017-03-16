@@ -10,7 +10,7 @@ let md5 = require('object-hash').MD5,
     Step = require('step'),
     _ = require('lodash'),
     cache = require('../util/cacheSystem'),
-    Account = require('../schema').Account;
+    User = require('../schema').User;
 
 let UserService = {
     /**
@@ -40,7 +40,7 @@ let UserService = {
     /**
      * @function necessaryInfo
      * 剔除不需要的、或用户不能看见的信息
-     * 仅保留 'username', 'createdTime', 'group', 'studentId', '_id' 字段
+     * 仅保留 'username', 'createdTime', 'group', 'uid', '_id' 字段
      *
      * @param {Object|[Object]} user 用户信息
      *
@@ -52,10 +52,10 @@ let UserService = {
 
         if (_.isArray(user)) {
             for (let i = 0; i < user.length; i++) {
-                answer[i] = _.pick(user[i], ['username', 'createdTime', 'group', 'studentId', '_id']);
+                answer[i] = _.pick(user[i], ['username', 'createdTime', 'group', 'uid', '_id']);
             }
         } else {
-            answer = _.pick(user, ['username', 'createdTime', 'group', 'studentId', '_id']);
+            answer = _.pick(user, ['username', 'createdTime', 'group', 'uid', '_id']);
         }
 
         return answer;
@@ -124,7 +124,7 @@ let UserService = {
                     if (user) {
                         cb(null, user);
                     } else {
-                        Account.findByUsername(username, this);
+                        User.findByUsername(username, this);
                     }
                 } else {
                     cb(err);
@@ -134,7 +134,7 @@ let UserService = {
                 if (!err) {
                     if (!user) {
                         cb({
-                            name: 'AccountNotFound',
+                            name: 'UserNotFound',
                             message: 'The account doesn\'t exist.'
                         });
                     } else {
