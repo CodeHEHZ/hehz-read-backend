@@ -56,7 +56,7 @@ router.get('/:id', ensureLoggedIn, function(req, res) {
  * @param {String}      question        问题
  * @param {[Object]}    option          选项
  * @param {String}      option[n].A     选项内容
- * @param {String}      answer          答案（标签如 'A'、'B'
+ * @param {String}      answer          答案（标签如 'A'、'B'）
  *
  * @response 201 创建成功
  * {String} message 消息提示

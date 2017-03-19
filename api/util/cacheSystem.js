@@ -15,6 +15,8 @@
  * - 经剔除敏感信息的用户信息：md5({ account: [username, 'safe'] })
  * - 题目：md5({ question: id })
  * - 不含答案的题目：md5({ question: [id, 'safe'] })
+ * - 测试：md5({ quiz: id })
+ * - 不含答案的测试：md5({ quiz: [id, 'safe'] })
  * - 用户组：md5({ group: title })
  *
  * 缓存的使用方式：
