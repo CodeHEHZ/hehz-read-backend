@@ -9,12 +9,14 @@
 let User = require('./userSchema'),
     Group = require('./groupSchema'),
     Book = require('./bookSchema'),
-    Question = require('./questionSchema');
+    Question = require('./questionSchema'),
+    Quiz = require('./quizSchema');
 
 // 请熟悉 JavaScript ES6 规范
 module.exports = {
     User,
     Group,
     Book,
-    Question
+    Question,
+    Quiz
 };
