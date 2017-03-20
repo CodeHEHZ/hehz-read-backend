@@ -19,7 +19,6 @@
     "ioredis": "^2.5.0",
     "jade": "~1.11.0",
     "lodash": "^4.17.4",
-    "ml-combinations": "^1.0.1",
     "mongoose": "^4.8.7",
     "morgan": "~1.7.0",
     "object-hash": "1.1.7",

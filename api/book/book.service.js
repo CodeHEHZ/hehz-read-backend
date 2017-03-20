@@ -10,6 +10,8 @@ let _ = require('lodash'),
     Step = require('step'),
     cache = require('../util/cacheSystem'),
     Book = require('../schema').Book,
+    Question = require('../schema').Question,
+    QuizService = require('../quiz/quiz.service'),
     md5 = require('object-hash').MD5;
 
 let BookService = {
@@ -18,14 +20,14 @@ let BookService = {
      * 根据模式生成图书的 md5 哈希
      *
      * @param author    作者
-     * @param book      书名
+     * @param name      书名
      * @param mode      模式('safe'/'original')
      */
 
-    hash(author, book, mode) {
+    hash(author, name, mode) {
         return mode == 'safe'
-            ? md5({ book: [author, book, 'safe'] })
-            : md5({ book: [author, book] });
+            ? md5({ book: [author, name, 'safe'] })
+            : md5({ book: [author, name] });
     },
 
 
@@ -133,6 +135,109 @@ let BookService = {
                 cb(err, mode == 'safe'
                     ? _safeBook
                     : _book);
+            }
+        );
+    },
+
+
+    /**
+     * @function openForQuiz
+     * 将一本书开放测试
+     *
+     * 开放测试要求一本书至少有 25 道题
+     *
+     * @param {String}      author      作者（或书的 MongoDB _id）
+     * @param {String}      name        书名（若在上一栏填了 MongoDB _id 则为可选）
+     * @param {Function}    cb          回调函数
+     */
+
+    openForQuiz(author, name, cb) {
+        let _this = this,
+            _book;
+
+        if (_.isFunction(name) && !cb) {
+            cb = name;
+        }
+
+        let questionSets = [[]];
+
+        Step(
+            function() {
+                if (/^[a-f\d]{24}$/i.test(author)) {
+                    Book.findById(author, this);
+                } else {
+                    this();
+                }
+            },
+            function(err, book) {
+                if (err) cb(err);
+                else {
+                    if (book) {
+                        _book = book;
+                        this(null, book);
+                    } else {
+                        _this.getSingleBook(author, name, 'original', this);
+                    }
+                }
+            },
+            function(err, book) {
+                if (err) cb(err);
+                else {
+                    Question.find({ book: book._id, open: true }, this);
+                }
+            },
+            function(err, questions) {
+                if (err) cb(err);
+                else {
+                    if (questions.length <= 25) {
+                        cb({
+                            name: 'TooFewQuestions',
+                            message: 'There must be more than 25 questions for an open book.'
+                        });
+                    } else {
+                        let group = this.group();
+                        for (let i = 0; i < 20; i++) {
+                            let questionSet,
+                                setsLock = 1;
+
+                            while(setsLock) {
+                                questionSet = [];
+                                for (let n = 0; n < 20; n++) {
+                                    let setLock = 1,
+                                        index;
+                                    while (setLock) {
+                                        index = Math.floor(Math.random() * questions.length);
+                                        index = index == questions.length ? (questions.length - 1) : index;
+                                        setLock = questionSet.includes(questions[index]._id) ? 1 : 0;
+                                    }
+                                    questionSet.push(questions[index]._id);
+                                }
+                                questionSet = questionSet.sort((a, b) => a - b);
+                                setsLock = questionSets.includes(questionSet) ? 1 : 0;
+                            }
+
+                            questionSets[i] = questionSet;
+                            QuizService.createQuiz(_book._id, questionSet, group());
+                        }
+                    }
+                }
+            },
+            function(err, quiz) {
+                if (err) cb(err);
+                else {
+                    for (let i = 0; i < quiz.length; i++) {
+                        quiz[i] = quiz[i]._id;
+                    }
+                    Book.update({ _id: _book._id }, { $set: {
+                        quiz,
+                        open: true
+                    } }, this);
+                }
+            },
+            function(err) {
+                cb(err, {
+                    message: 'Success'
+                });
             }
         );
     }

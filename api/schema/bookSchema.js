@@ -5,7 +5,7 @@
  * {String}     author      作者
  * {Boolean}    open        是否开放
  * {[String]}   category    种类
- * {[Mixed]}    question    题目
+ * {[Mixed]}    quiz        测试的 MongoDB _id
  * {String}     cover       书的封面图片链接
  * {String}     creator     创建人
  */

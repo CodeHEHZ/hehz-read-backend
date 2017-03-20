@@ -95,6 +95,7 @@ let QuizService = {
         }
 
         Step(
+            // 先通过 givenHash 查找缓存
             function() {
                 if (_.isFunction(givenHash)) {
                     next();
@@ -102,6 +103,7 @@ let QuizService = {
                     cache.get(givenHash, this);
                 }
             },
+            // 没有的话就生成哈希，再查查缓存
             function(err, quiz) {
                 if (err) cb(err);
                 else {
@@ -122,6 +124,7 @@ let QuizService = {
                     }
                 }
             },
+            // 要是还没有就直接找数据库
             function(err, quiz) {
                 if (err) cb(err);
                 else {
@@ -132,6 +135,7 @@ let QuizService = {
                     }
                 }
             },
+            // 找到了就接着找测试里的题目
             function(err, quiz) {
                 if (err) cb(err);
                 else {
@@ -149,6 +153,7 @@ let QuizService = {
                     }
                 }
             },
+            // 将结果存入缓存
             function(err, questions) {
                 if (err) cb(err);
                 else {
