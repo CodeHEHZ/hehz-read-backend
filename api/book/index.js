@@ -6,8 +6,9 @@
  * 批量获取书本的信息：POST /book
  * 创建书本：POST /book/new
  * 修改书本信息：PUT /book/:author/:name
- * 开放书本：GET /book/:author/:name/open
- * 开始测试：GET /book/:author/:name/test
+ * 开放书本：GET  /book/:author/:name/open
+ * 开始测试：GET  /book/:author/:name/quiz
+ * 提交测试：POST /book/:author/:name/quiz
  */
 
 let express = require('express'),
@@ -271,6 +272,8 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
  * 开放书本
  * GET /book/:author/:name/open
  *
+ * @permission 'OpenQuiz'
+ *
  * @param {String}  name    书名
  * @param {String}  author  作者
  *
@@ -298,7 +301,9 @@ router.get('/:author/:name/open', ensureLoggedIn, permittedTo('OpenQuiz'), funct
 
 /**
  * 开始测试
- * GET /book/:author/:name/test
+ * GET /book/:author/:name/quiz
+ *
+ * @permission 'TakeTest'
  *
  * @param {String}  name    书名
  * @param {String}  author  作者
@@ -309,11 +314,13 @@ router.get('/:author/:name/open', ensureLoggedIn, permittedTo('OpenQuiz'), funct
  * {Number} timeLimit   时间限制（秒）
  */
 
-router.get('/:author/:name/test', ensureLoggedIn, permittedTo('TakeTest'), function(req, res){
+router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), function(req, res){
     let no = new CheckError(res).check,
         _hash,
         _book,
-        _quiz;
+        _quiz,
+        timeLimit: 330,
+        cooldown: 172800;
 
     Step(
         function() {
@@ -347,16 +354,16 @@ router.get('/:author/:name/test', ensureLoggedIn, permittedTo('TakeTest'), funct
         },
         function(err, quiz) {
             if (no(err)) {
-                _quiz = quiz;
-                let group = this.group();
+                let group = this.group(),
+                    tempHash = md5({
+                        username: req.user.username,
+                        book: _book._id,
+                        test: 1
+                    });
                 // 330 seconds = 5.5 minutes
-                cache.set(md5({
-                    username: req.user.username,
-                    book: _book._id,
-                    test: 1
-                }), [], { quiz: quiz._id }, 330, group());
+                cache.set(tempHash, tempHash, { quiz: quiz._id }, timeLimit, group());
                 // 172800 seconds = 2 days
-                cache.set(_hash, [], { quiz: quiz._id }, 172800, group());
+                cache.set(_hash, [], { quiz: quiz._id }, cooldown, group());
             }
         },
         function(err) {
@@ -365,6 +372,80 @@ router.get('/:author/:name/test', ensureLoggedIn, permittedTo('TakeTest'), funct
                     quiz: _quiz,
                     timestamp: Date.now(),
                     timeLimit: 300
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 提交测试
+ * POST /book/:author/:name/quiz
+ *
+ * @permission 'TakeTest'
+ *
+ * @param {String}  name                书名
+ * @param {String}  author              作者
+ * @param {String}  quiz                测试的 MongoDB _id
+ * @param {Object}  answer              用户的答案
+ * @param {String}  answer[question ID] 每道题对应的答案
+ *
+ * @response 200 提交成功
+ * {Number}     score       成绩
+ * {Boolean}    pass        是否通过
+ * {String}     message     提示消息
+ */
+
+router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
+    paramValidator('quiz', 'answer'), function(req, res) {
+    let no = new CheckError(res).check,
+        tempHash,
+        score = 0,
+        pass = false;
+
+    Step(
+        function() {
+            BookService.getSingleBook(req.params.author, req.params.name, 'safe', this);
+        },
+        function(err, book) {
+            if (no(err)) {
+                tempHash = md5({
+                    username: req.user.username,
+                    book: book._id,
+                    test: 1
+                });
+                cache.get(tempHash, this);
+            }
+        },
+        function(err, quiz) {
+            if (no(err)) {
+                if (!quiz) {
+                    res.status(400).json({
+                        error: 'QuizExpiredOrNotTaken',
+                        message: 'Quiz expired or not even taken.'
+                    });
+                } else {
+                    QuizService.getQuiz(quiz._id, 'original', this);
+                }
+            }
+        },
+        function(err, quiz) {
+            if (no(err)) {
+                for (let question of quiz.question) {
+                    if (req.body.answer[question._id] && req.body.answer[question._id] == question.answer) {
+                        score += 5;
+                    }
+                }
+
+                if (score >= 90) {
+                    pass = true;
+                }
+
+                res.status(200).json({
+                    score,
+                    pass,
+                    message: pass ? '恭喜，通过测试' : '很遗憾，未能通过测试。请在两天后再次挑战'
                 });
             }
         }

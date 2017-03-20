@@ -79,8 +79,10 @@ let QuizService = {
      * @param {Function}    cb          回调函数
      *
      * @callback(err, quiz)
-     * {Error}  err     错误信息，如无错则为 null
-     * {Object} quiz    查找到的测试
+     * {Error}      err             错误信息，如无错则为 null
+     * {Object}     quiz            查找到的测试
+     * {[Object]}   quiz.question   测试的问题
+     * {String}     quiz.book       测试所属的书的 MongoDB _id
      */
 
     getQuiz(id, mode, givenHash, cb) {
@@ -250,7 +252,7 @@ let QuizService = {
                     }
                 }
             },
-            // 创建题目
+            // 创建测试
             function(err, result) {
                 if (err) cb(err);
                 else {
