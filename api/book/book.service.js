@@ -4,6 +4,7 @@
  * @function hash(author, name, mode)
  * @function necessaryInfo(book)
  * @function getSingleBook(author, name, mode(, hash), cb)
+ * @function openForQuiz(author, name, cb)
  */
 
 let _ = require('lodash'),
@@ -149,6 +150,10 @@ let BookService = {
      * @param {String}      author      作者（或书的 MongoDB _id）
      * @param {String}      name        书名（若在上一栏填了 MongoDB _id 则为可选）
      * @param {Function}    cb          回调函数
+     *
+     * @callback(err, message)
+     * {Error}  err     错误信息，如无错则为 null
+     * {String} message 提示信息
      */
 
     openForQuiz(author, name, cb) {

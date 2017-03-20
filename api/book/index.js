@@ -4,6 +4,9 @@
  *
  * 获取单个书本的信息：GET  /book/:author/:name
  * 批量获取书本的信息：POST /book
+ * 创建书本：POST /book/new
+ * 修改书本信息：PUT /book/:author/:name
+ * 开放书本：GET /book/:author/:name/open
  */
 
 let express = require('express'),
@@ -255,6 +258,35 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
             if (no(err)) {
                 res.status(201).json({
                     message: 'Modified.'
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 开放书本
+ * GET /book/:author/:name/open
+ *
+ * @param {String}  name    书名
+ * @param {String}  author  作者
+ *
+ * @response 201 成功开放书本
+ * {String} message 提示信息
+ */
+
+router.get('/:author/:name/open', ensureLoggedIn, permittedTo('OpenQuiz'), function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            BookService.openForQuiz(req.params.author, req.params.name, this);
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: 'Success.'
                 });
             }
         }
