@@ -2,10 +2,14 @@
  * @file 关于测试的各种服务
  *
  * @function hash(id, mode)
+ * @function necessaryInfo(quiz)
+ * @function getQuiz(id, mode(, givenHash), cb)
+ * @function createQuiz(book, questionSet, cb)
  */
 
 let md5 = require('object-hash').MD5,
     Step = require('step'),
+    _ = require('lodash'),
     cache = require('../util/cacheSystem'),
     QuestionService = require('../question/question.service'),
     Book = require('../schema').Book,
@@ -33,6 +37,135 @@ let QuizService = {
             default:
                 return md5({ quiz: id });
         }
+    },
+
+
+    /**
+     * @function necessaryInfo
+     * 除去测试中的答案
+     *
+     * @param {Object|[Object]} quiz        测试
+     * @returns {Object|[Object]}           除去了答案的测试
+     */
+
+    necessaryInfo(quiz) {
+        let answer = [];
+        if (_.isArray(quiz)) {
+            for (let i = 0; i < quiz.length; i++) {
+                answer[i] = {
+                    _id: quiz[i]._id,
+                    book: quiz[i].book,
+                    question: generateSafeQuestionObject(quiz[i].question)
+                };
+            }
+        } else {
+            answer = {
+                _id: quiz._id,
+                book: quiz.book,
+                question: generateSafeQuestionObject(quiz.question)
+            };
+        }
+        return answer;
+    },
+
+
+    /**
+     * @function getQuiz
+     * 获取测试的信息
+     *
+     * @param {String}      id          测试的 MongoDB _id
+     * @param {String}      mode        模式（'safe'/'original'）
+     * @param {String}      givenHash   （可选）已有的哈希
+     * @param {Function}    cb          回调函数
+     *
+     * @callback(err, quiz)
+     * {Error}  err     错误信息，如无错则为 null
+     * {Object} quiz    查找到的测试
+     */
+
+    getQuiz(id, mode, givenHash, cb) {
+        let _hash,
+            _quiz,
+            _safeHash,
+            _safeQuiz,
+            _this = this;
+
+        if (!cb && _.isFunction(givenHash)) {
+            cb = givenHash;
+        }
+
+        Step(
+            function() {
+                if (_.isFunction(givenHash)) {
+                    next();
+                } else {
+                    cache.get(givenHash, this);
+                }
+            },
+            function(err, quiz) {
+                if (err) cb(err);
+                else {
+                    if (quiz) {
+                        cb(null, quiz);
+                    } else {
+                        switch (mode) {
+                            case 'safe':
+                                _safeHash = _this.hash(id, mode);
+                                break;
+                            case 'original':
+                                _hash = _this.hash(id, mode);
+                                break;
+                            default:
+                                _safeHash = _this.hash(id, 'safe');
+                        }
+                        cache.get(_hash || _safeHash, this);
+                    }
+                }
+            },
+            function(err, quiz) {
+                if (err) cb(err);
+                else {
+                    if (quiz) {
+                        cb(null, quiz);
+                    } else {
+                        Quiz.findById(id, this);
+                    }
+                }
+            },
+            function(err, quiz) {
+                if (err) cb(err);
+                else {
+                    if (quiz) {
+                        _quiz = quiz;
+                        let group = this.group();
+                        for (let question of _quiz.question) {
+                            QuestionService.getSingleQuestion(question, 'original', group());
+                        }
+                    } else {
+                        cb({
+                            name: 'QuizNotFound',
+                            message: 'The quiz you look for doesn\'t exist.'
+                        });
+                    }
+                }
+            },
+            function(err, questions) {
+                if (err) cb(err);
+                else {
+                    _quiz.question = questions;
+                    _safeQuiz = _this.necessaryInfo(_quiz);
+                    for (let index in questions) {
+                        questions[index] = questions._id;
+                    }
+                    let group = this.group();
+                    cache.set(_hash || _this.hash(id, 'original'), questions, _quiz, group());
+                    cache.set(_safeHash || _this.hash(id, 'safe'), questions, _safeQuiz, group());
+                }
+            },
+            function(err) {
+                cb(err, mode == 'safe' ? _safeQuiz : _quiz);
+            }
+        );
     },
 
 
@@ -133,5 +266,30 @@ let QuizService = {
         );
     }
 };
+
+
+/**
+ * @function generateSafeQuestionObject
+ * @param {[Object]} question   问题
+ * @returns {[Object]}  删去答案的问题
+ */
+
+function generateSafeQuestionObject(question) {
+    let _question = [];
+
+    for (let n = 0; n < question.length; n++) {
+        _question[n] = {
+            id: question[n].id,
+            question: question[n].question,
+            difficulty: question[n].difficulty
+        };
+
+        if (question[n].option) {
+            _question[n].option = question[n].option;
+        }
+    }
+
+    return _question;
+}
 
 module.exports = QuizService;

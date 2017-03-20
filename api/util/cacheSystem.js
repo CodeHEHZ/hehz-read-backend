@@ -20,9 +20,9 @@
  * - 用户组：md5({ group: title })
  *
  * 缓存的使用方式：
- * - 获取 get
- * - 写入 set
- * - 更新 update
+ * - 获取 get(hash, cb)
+ * - 写入 set(hash, idSet, content, cb)
+ * - 更新 update(id, cb)
  */
 
 let Redis = require('ioredis'),
