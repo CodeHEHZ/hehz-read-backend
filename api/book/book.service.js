@@ -162,6 +162,7 @@ let BookService = {
         let questionSets = [[]];
 
         Step(
+            // 如果 author 是个 MongoDB _id，就先看看有没有对应的书本
             function() {
                 if (/^[a-f\d]{24}$/i.test(author)) {
                     Book.findById(author, this);
@@ -169,6 +170,7 @@ let BookService = {
                     this();
                 }
             },
+            // 没有的话就正常地查找
             function(err, book) {
                 if (err) cb(err);
                 else {
@@ -180,39 +182,47 @@ let BookService = {
                     }
                 }
             },
+            // 看看对应这本书的题目有多少
             function(err, book) {
                 if (err) cb(err);
                 else {
                     Question.find({ book: book._id, open: true }, this);
                 }
             },
+            // 开始出测试
             function(err, questions) {
                 if (err) cb(err);
                 else {
+                    // 问题总量不得少于 25 道
                     if (questions.length <= 25) {
                         cb({
                             name: 'TooFewQuestions',
                             message: 'There must be more than 25 questions for an open book.'
                         });
                     } else {
+                        // 这段过上一个礼拜我肯定就看不懂了
                         let group = this.group();
+                        // 循环 20 次来建 20 个测试
                         for (let i = 0; i < 20; i++) {
                             let questionSet,
                                 setsLock = 1;
 
                             while(setsLock) {
                                 questionSet = [];
+                                // 循环 20 次来挑出 20 道题
                                 for (let n = 0; n < 20; n++) {
                                     let setLock = 1,
                                         index;
                                     while (setLock) {
                                         index = Math.floor(Math.random() * questions.length);
                                         index = index == questions.length ? (questions.length - 1) : index;
+                                        // 如果这个测试里已经有同样的问题，那就再随机一次
                                         setLock = questionSet.includes(questions[index]._id) ? 1 : 0;
                                     }
                                     questionSet.push(questions[index]._id);
                                 }
                                 questionSet = questionSet.sort((a, b) => a - b);
+                                // 如果这本书里已经有同样的测试，那就再随机一次
                                 setsLock = questionSets.includes(questionSet) ? 1 : 0;
                             }
 
