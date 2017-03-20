@@ -64,6 +64,7 @@ let cacheSystem = {
      * @param {String|Object}   hash    哈希值
      * @param {String|[String]} idSet   所有与这个缓存有关的对象的 MongoDB _id
      * @param {*}               content 要写入的内容
+     * @param {Number}          expire  （可选）过期时长（秒）
      * @param {Function}        cb      回调函数
      *
      * @callback(err)
@@ -74,6 +75,7 @@ let cacheSystem = {
      * hash 为 books{[author, name]} 的哈希
      * idSet 为存有 books 中所有书本的 _id 的数组
      * content 为 这些书的信息
+     * expire 可以跳过不填
      * cb 可以为 function(err, result) {
      *     if (no(err)) {
      *         res.status(200).json(result);
@@ -81,7 +83,11 @@ let cacheSystem = {
      * }
      */
 
-    set(hash, idSet, content, cb = () => {}) {
+    set(hash, idSet, content, expire, cb = () => {}) {
+        if (_.isFunction(expire)) {
+            cb = expire;
+        }
+
         Step(
             function() {
                 if (!idSet.length) {
@@ -94,9 +100,13 @@ let cacheSystem = {
             },
             function(err) {
                 if (err) cb(err);
-                redis.set('cache:' + hash, JSON.stringify(content), cb);
+                if (_.isNumber(expire)) {
+                    redis.set('cache:' + hash, JSON.stringify(content), 'EX', expire, cb);
+                } else {
+                    redis.set('cache:' + hash, JSON.stringify(content), cb);
+                }
             }
-        )
+        );
     },
 
 
