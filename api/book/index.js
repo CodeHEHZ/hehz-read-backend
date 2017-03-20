@@ -7,6 +7,7 @@
  * 创建书本：POST /book/new
  * 修改书本信息：PUT /book/:author/:name
  * 开放书本：GET /book/:author/:name/open
+ * 开始测试：GET /book/:author/:name/test
  */
 
 let express = require('express'),
@@ -17,6 +18,7 @@ let express = require('express'),
     permittedTo = require('../util/permittedTo.middleware'),
     paramValidator = require('../util/paramValidator.middleware'),
     cache = require('../util/cacheSystem'),
+    QuizService = require('../quiz/quiz.service'),
     BookService = require('./book.service'),
     Book = require('../schema').Book,
     md5 = require('object-hash').MD5,
@@ -220,7 +222,7 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
  * {String} message 错误信息
  */
 
-router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), function(req, res, next) {
+router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), function(req, res) {
     let no = new CheckError(res).check,
         _book;
 
@@ -287,6 +289,82 @@ router.get('/:author/:name/open', ensureLoggedIn, permittedTo('OpenQuiz'), funct
             if (no(err)) {
                 res.status(201).json({
                     message: 'Success.'
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 开始测试
+ * GET /book/:author/:name/test
+ *
+ * @param {String}  name    书名
+ * @param {String}  author  作者
+ *
+ * @response 200 开始测试
+ * {Object} quiz        测试信息
+ * {Number} timestamp   开始测试的时间戳
+ * {Number} timeLimit   时间限制（秒）
+ */
+
+router.get('/:author/:name/test', ensureLoggedIn, permittedTo('TakeTest'), function(req, res){
+    let no = new CheckError(res).check,
+        _hash,
+        _book,
+        _quiz;
+
+    Step(
+        function() {
+            BookService.getSingleBook(req.params.author, req.params.name, 'safe', this);
+        },
+        function(err, book) {
+            if (no(err)) {
+                _book = book;
+                if (book.open) {
+                    _hash = md5({ username: req.user.username, book: _book._id });
+                    cache.get(_hash, this);
+                } else {
+                    res.status(400).json({
+                        error: 'BookNotOpenForQuiz',
+                        message: 'This book is not open for quiz now.'
+                    });
+                }
+            }
+        },
+        function(err, tested) {
+            if (no(err)) {
+                if (tested) {
+                    res.status(400).json({
+                        error: 'TakingQuizTooFrequently',
+                        message: 'You have to take the quiz two days after your last quiz.'
+                    });
+                } else {
+                    QuizService.getQuiz(_book.quiz[Math.floor(Math.random() * _book.quiz.length)], 'safe', this);
+                }
+            }
+        },
+        function(err, quiz) {
+            if (no(err)) {
+                _quiz = quiz;
+                let group = this.group();
+                // 330 seconds = 5.5 minutes
+                cache.set(md5({
+                    username: req.user.username,
+                    book: _book._id,
+                    test: 1
+                }), [], { quiz: quiz._id }, 330, group());
+                // 172800 seconds = 2 days
+                cache.set(_hash, [], { quiz: quiz._id }, 172800, group());
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(200).json({
+                    quiz: _quiz,
+                    timestamp: Date.now(),
+                    timeLimit: 300
                 });
             }
         }
