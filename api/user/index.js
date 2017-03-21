@@ -24,6 +24,11 @@ let express = require('express'),
     CheckError = require('../util/checkError');
 
 
+router.get('/', ensureLoggedIn, function(req, res) {
+    res.status(200).cookie('user', req.user).json(req.user);
+});
+
+
 /**
  * 注册用户
  * POST /user/register
@@ -75,8 +80,17 @@ router.post('/register', function(req, res) {
  */
 
 router.post('/login', passport.authenticate('local'), function(req, res) {
-    res.status(200).json({
-        username: req.user.username
+    res.status(200).cookie('user', {
+        _id: req.user._id,
+        username: req.user.username,
+        group: req.user.group
+    }, {
+        maxAge: 604800,
+        httpOnly: false,
+        secure: false
+    }).json({
+        username: req.user.username,
+        group: req.user.group
     });
 });
 

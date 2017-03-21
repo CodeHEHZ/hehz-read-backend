@@ -319,8 +319,8 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
         _hash,
         _book,
         _quiz,
-        timeLimit: 330,
-        cooldown: 172800;
+        timeLimit = 330,
+        cooldown = 172800;
 
     Step(
         function() {
