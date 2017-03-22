@@ -4,6 +4,7 @@
  *
  * 获取单个书本的信息：GET  /book/:author/:name
  * 批量获取书本的信息：POST /book
+ * 获取书单：GET /book/list
  * 创建书本：POST /book/new
  * 修改书本信息：PUT /book/:author/:name
  * 开放书本：GET  /book/:author/:name/open
@@ -141,6 +142,47 @@ router.post('/', paramValidator(['book', 'object']), function(req, res, next) {
             }
         );
     }
+});
+
+
+/**
+ * 获取书单
+ * GET /book/list
+ *
+ * @response 200 成功获取书单
+ * {[Object]}   bookList            书单
+ * {String}     bookList[n].name    书名
+ * {String}     bookList[n].author  作者
+ * {String}     bookList[n].cover   书的封面图片链接
+ */
+
+router.get('/list', function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            cache.get('cache: bookList', this);
+        },
+        function(err, bookList) {
+            if (no(err)) {
+                if (bookList) {
+                    res.status(200).json(bookList);
+                } else {
+                    Book.find({}, 'name author cover', this);
+                }
+            }
+        },
+        function(err, bookList) {
+            if (no(err)) {
+                let bookIdList = [];
+                for (let book of bookList) {
+                    bookIdList.push(book._id);
+                }
+                res.status(200).json(bookList);
+                cache.set('cache: bookList', bookIdList);
+            }
+        }
+    );
 });
 
 
