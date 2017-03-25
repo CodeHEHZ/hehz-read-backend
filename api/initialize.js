@@ -16,7 +16,7 @@ let permissionStudent = ['TakeTest'],
     permissionAdmin = _.flattenDeep([permissionManager, 'ChangeManager',
         'ModifyGroupPermission']);
 
-function initialize() {
+function initialize(cb = () => {}) {
     Step(
         function() {
             // 查询是否有 admin 用户
@@ -109,7 +109,7 @@ function initialize() {
                 });
                 admin.save(this);
             } else {
-                this();
+                cb();
             }
         }
     );

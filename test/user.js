@@ -1,9 +1,14 @@
-let chai = require('chai');
-let chaiHttp = require('chai-http');
-let server = require('../app');
-let should = chai.should();
+let chai = require('chai'),
+    chaiHttp = require('chai-http'),
+    server = require('../app'),
+    should = chai.should(),
+    initialize = require('../api/initialize');
 
-require('../api/initialize')();
+describe('Initializing', () => {
+    it('Let\'t begin with initialization...', (done) => {
+        initialize(done);
+    });
+});
 
 chai.use(chaiHttp);
 
