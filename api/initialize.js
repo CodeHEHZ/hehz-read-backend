@@ -109,8 +109,12 @@ function initialize(cb = () => {}) {
                 });
                 admin.save(this);
             } else {
-                cb();
+                this();
             }
+        },
+        function(err) {
+            if (err) throw err;
+            cb();
         }
     );
 }

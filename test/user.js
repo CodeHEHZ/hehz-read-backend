@@ -6,7 +6,7 @@ let chai = require('chai'),
 
 describe('Initializing', () => {
     it('Let\'t begin with initialization...', (done) => {
-        initialize(() => done());
+        initialize(done);
     });
 });
 
