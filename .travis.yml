@@ -2,7 +2,10 @@ language: node_js
 node_js:
   - "7"
   - "6"
+services:
+  - mongodb
+  - redis-server
 before_script:
   - npm install
-  - npm install -g gulp
-script: gulp watch 
+  - npm install -g mocha
+script: mocha

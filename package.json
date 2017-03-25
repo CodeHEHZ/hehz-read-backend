@@ -32,6 +32,9 @@
   },
   "devDependencies": {
     "browser-sync": "^2.18.8",
-    "gulp": "^3.9.1"
+    "chai": "^3.5.0",
+    "chai-http": "^3.0.0",
+    "gulp": "^3.9.1",
+    "mocha": "^3.2.0"
   }
 }
