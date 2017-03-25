@@ -28,3 +28,15 @@ describe('GET /user/:username', () => {
             });
     });
 });
+
+describe('GET /user/logout', () => {
+    it('It should return a message saying \'Logged out\'', (done) => {
+        chai.request(server)
+            .get('/user/logout')
+            .end((err, res) => {
+                res.should.have.status(200);
+                res.body.message.should.be.eql('Logged out.');
+                done();
+            });
+    });
+});
