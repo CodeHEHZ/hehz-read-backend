@@ -3,6 +3,8 @@ let chaiHttp = require('chai-http');
 let server = require('../app');
 let should = chai.should();
 
+require('../api/initialize')();
+
 chai.use(chaiHttp);
 
 describe('GET /user/:username', () => {
