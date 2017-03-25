@@ -1,4 +1,5 @@
 **读书 @ 华二黄中 - 后端**
+[![Build Status](https://travis-ci.org/CodeHEHZ/hehz-read-backend.svg?branch=master)](https://travis-ci.org/CodeHEHZ/hehz-read-backend)
 -
 **环境**
 - Node.js > 6.0
