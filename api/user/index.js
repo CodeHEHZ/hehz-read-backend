@@ -35,6 +35,7 @@ router.get('/', ensureLoggedIn, function(req, res) {
  * @param {String}  username    用户名
  * @param {String}  schoolId    学号
  * @param {String}  group       用户组，默认为 student
+ * @param {String}  password    密码
  *
  * @response 201 注册成功
  * {String} username    用户名
