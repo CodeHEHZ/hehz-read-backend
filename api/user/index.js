@@ -88,7 +88,8 @@ router.post('/login', passport.authenticate('local'), function(req, res) {
     }, {
         maxAge: 604800,
         httpOnly: false,
-        secure: false
+        secure: false,
+        domain: '.zehua.li'
     }).json({
         username: req.user.username,
         group: req.user.group
