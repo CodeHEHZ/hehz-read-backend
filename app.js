@@ -41,8 +41,20 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+let whitelist = ['http://test.local.read.zehua.li:8010', 'http://test.read.zehuali'];
+let corsOptions = {
+    origin: function (origin, callback) {
+        if (whitelist.indexOf(origin) !== -1) {
+            callback(null, true)
+        } else {
+            callback(new Error('Not allowed by CORS'))
+        }
+    }
+};
+
+app.use(cors(corsOptions));
+
 app.use(function(req, res, next) {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:8010');
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     res.header('Access-Control-Allow-Credentials', true);
     next();
