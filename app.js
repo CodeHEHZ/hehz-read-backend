@@ -8,8 +8,7 @@ let express = require('express'),
     passport = require('passport'),
     LocalStrategy = require('passport-local').Strategy,
     session = require('express-session'),
-    RedisStore = require('connect-redis')(session),
-    cors = require('cors');
+    RedisStore = require('connect-redis')(session);
 
 let index = require('./api'),
     user = require('./api/user'),
@@ -42,24 +41,13 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 let whitelist = ['http://test.local.read.zehua.li:8010', 'http://test.read.zehua.li'];
-let corsOptions = {
-    origin: function (origin, callback) {
-        if (whitelist.includes(origin)) {
-            callback(null, true)
-        } else {
-            callback(new Error('Not allowed by CORS'))
-        }
-    }
-};
 
 app.use(function(req, res, next) {
-    console.log(req)
+    res.header('Access-Control-Allow-Origin', whitelist.includes(req.headers.origin) ? req.headers.origin : 'https://read.hehlzx.cn');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     res.header('Access-Control-Allow-Credentials', true);
     next();
 });
-
-app.use(cors(corsOptions));
 
 app.use('/', index);
 app.use('/user', user);
