@@ -7,6 +7,18 @@
 
 let mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost/hehz-read');
+
+let username = process.env.MONGO_USERNAME || 'readAdmin',
+    password = process.env.MONGO_PWD,
+    port = process.env.MONGO_PORT || 27017,
+    host = process.env.MONGO_HOST || '127.0.0.1',
+    database = process.env.MONGO_DATABASE || 'hehz-read',
+    auth = process.env.MONGO_AUTH || false;
+
+if (auth) {
+    mongoose.connect('mongodb://' + username + ':' + password + '@' + host + ':' + port + '/' + database)
+} else {
+    mongoose.connect('mongodb://' + host + ':' + port + '/' + database);
+}
 
 module.exports = mongoose;
