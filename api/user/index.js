@@ -21,7 +21,8 @@ let express = require('express'),
     UserService = require('./user.service'),
     cache = require('../util/cacheSystem'),
     permittedTo = require('../util/permittedTo.middleware'),
-    CheckError = require('../util/checkError');
+    CheckError = require('../util/checkError'),
+    captchaValidator = require('../util/captchaValidator.middleware');
 
 
 router.get('/', ensureLoggedIn, function(req, res) {
@@ -80,7 +81,7 @@ router.post('/register', function(req, res) {
  * 同时给用户发去一个 session，session 存储于 Redis 中。
  */
 
-router.post('/login', passport.authenticate('local'), function(req, res) {
+router.post('/login', captchaValidator, passport.authenticate('local'), function(req, res) {
     res.status(200).cookie('user', {
         _id: req.user._id,
         username: req.user.username,

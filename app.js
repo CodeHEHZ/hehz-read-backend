@@ -14,7 +14,8 @@ let index = require('./api'),
     user = require('./api/user'),
     group = require('./api/group'),
     book = require('./api/book'),
-    question = require('./api/question');
+    question = require('./api/question'),
+    captcha = require('./api/captcha');
 
 
 let app = express();
@@ -54,6 +55,7 @@ app.use('/user', user);
 app.use('/group', group);
 app.use('/book', book);
 app.use('/question', question);
+app.use('/captcha', captcha);
 
 let User = require('./api/schema').User;
 passport.use(new LocalStrategy(User.authenticate()));
