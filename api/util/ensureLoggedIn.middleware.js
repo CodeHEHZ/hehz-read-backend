@@ -10,7 +10,7 @@ function ensureLoggedIn(req, res, next) {
     if (req.user) {
         next();
     } else {
-        res.json({
+        res.status(400).json({
             error: 'NotLoggedIn',
             message: '您还未登录。'
         });
