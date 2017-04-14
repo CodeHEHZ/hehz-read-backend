@@ -32,8 +32,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'views')));
 app.use(session({
-    store: new RedisStore(),
-    secret: 'www',
+    store: new RedisStore({
+        host: process.env.REDIS_HOST || '127.0.0.1'
+    }),
+    secret: process.env.SESSION_SECRET || 'read@hehz2016',
     resave: true,
     saveUninitialized: true
 }));

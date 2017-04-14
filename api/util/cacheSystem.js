@@ -26,7 +26,9 @@
  */
 
 let Redis = require('ioredis'),
-    redis = new Redis(),
+    redis = new Redis({
+        host: process.env.REDIS_HOST || '127.0.0.1'
+    }),
     Step = require('step'),
     _ = require('lodash');
 
