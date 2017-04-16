@@ -174,12 +174,8 @@ router.get('/list', function(req, res) {
         },
         function(err, bookList) {
             if (no(err)) {
-                let bookIdList = [];
-                for (let book of bookList) {
-                    bookIdList.push(book._id);
-                }
                 res.status(200).json(bookList);
-                cache.set('cache: bookList', bookIdList);
+                cache.set('cache: bookList', bookList);
             }
         }
     );

@@ -89,8 +89,8 @@ router.post('/login', captchaValidator, passport.authenticate('local'), function
     }, {
         maxAge: 604800,
         httpOnly: false,
-        secure: false,
-        domain: '.zehua.li'
+        secure: process.env.COOKIE_SECURE !== false,
+        domain: process.env.COOKIE_DOMAIN || '.hehlzx.cn'
     }).json({
         username: req.user.username,
         group: req.user.group

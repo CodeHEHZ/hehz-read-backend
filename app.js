@@ -43,7 +43,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-let whitelist = ['http://test.local.read.zehua.li:8010', 'http://test.read.zehua.li'];
+let whitelist = process.env.CORS_WHITELIST || [];
 
 app.use(function(req, res, next) {
     res.header('Access-Control-Allow-Origin', whitelist.includes(req.headers.origin) ? req.headers.origin : 'https://read.hehlzx.cn');
