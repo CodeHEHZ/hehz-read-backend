@@ -19,6 +19,7 @@ let Book = new Schema({
     open: { type: Boolean, default: false },
     category: { type: [String], default: ['长篇小说'] },
     quiz: { type: [Schema.Types.Mixed], default: [] },
+    description: String,
     cover: String,
     creator: String
 });

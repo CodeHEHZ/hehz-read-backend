@@ -26,7 +26,7 @@ let BookService = {
      */
 
     hash(author, name, mode) {
-        return mode == 'safe'
+        return mode === 'safe'
             ? md5({ book: [author, name, 'safe'] })
             : md5({ book: [author, name] });
     },
@@ -46,10 +46,10 @@ let BookService = {
         let answer = [];
         if (_.isArray(book)) {
             for (let i = 0; i < book.length; i++) {
-                answer[i] = _.pick(book[i], ['name', 'author', 'open', 'category', 'cover', '_id']);
+                answer[i] = _.pick(book[i], ['name', 'author', 'open', 'category', 'cover', 'description', '_id']);
             }
         } else {
-            answer = _.pick(book, ['name', 'author', 'open', 'category', 'cover', '_id'])
+            answer = _.pick(book, ['name', 'author', 'open', 'category', 'cover', 'description', '_id']);
         }
         return answer;
     },

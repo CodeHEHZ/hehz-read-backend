@@ -40,6 +40,7 @@ let express = require('express'),
  * {Boolean}    open        是否开放
  * {[String]}   category    种类
  * {String}     cover       书的封面图片链接
+ * {String}     description 简介
  */
 
 router.get('/:author/:name', function(req, res) {
@@ -66,12 +67,13 @@ router.get('/:author/:name', function(req, res) {
  *         Object: { name: String, author: String }
  *
  * @response 200 查得书本
- * {[Object]}   bookCollection  书的数组
- * {String}     book.name       书名
- * {String}     book.author     作者
- * {Boolean}    book.open       是否开放
- * {[String]}   book.category   种类
- * {String}     book.cover      书的封面图片链接
+ * {[Object]}   bookCollection      书的数组
+ * {String}     book.name           书名
+ * {String}     book.author         作者
+ * {Boolean}    book.open           是否开放
+ * {[String]}   book.category       种类
+ * {String}     book.description    简介
+ * {String}     book.cover          书的封面图片链接
  */
 
 router.post('/', paramValidator(['book', 'object']), function(req, res, next) {
@@ -150,10 +152,11 @@ router.post('/', paramValidator(['book', 'object']), function(req, res, next) {
  * GET /book/list
  *
  * @response 200 成功获取书单
- * {[Object]}   bookList            书单
- * {String}     bookList[n].name    书名
- * {String}     bookList[n].author  作者
- * {String}     bookList[n].cover   书的封面图片链接
+ * {[Object]}   bookList                书单
+ * {String}     bookList[n].name        书名
+ * {String}     bookList[n].author      作者
+ * {String}     bookList[n].cover       书的封面图片链接
+ * {String}     bookList[n].description 书的简介
  */
 
 router.get('/list', function(req, res) {
@@ -192,6 +195,7 @@ router.get('/list', function(req, res) {
  * @param {String}      author      作者
  * @param {[String]}    category    种类
  * @param {String}      cover       书的封面图片链接
+ * @param {String}      description 简介
  *
  * @response 201 成功创建图书
  * {Object} book    书本信息
@@ -201,7 +205,7 @@ router.get('/list', function(req, res) {
  */
 
 router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
-    paramValidator('name', 'author', ['category', 'object'], 'cover'), function(req, res, next) {
+    paramValidator('name', 'author', ['category', 'object'], 'cover', 'description'), function(req, res, next) {
     let no = new CheckError(res).check;
 
     Step(
@@ -228,7 +232,8 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
                 name: req.body.name,
                 author: req.body.author,
                 category: req.body.category,
-                cover: req.body.cover
+                cover: req.body.cover,
+                description: req.body.description
             });
             book.save(this);
         },
@@ -252,6 +257,7 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
  * @param {String}      author      作者
  * @param {[String]}    category    种类
  * @param {String}      cover       书的封面图片链接
+ * @param {String}      description 简介
  *
  * @response 201 已修改
  * {String} message 提示信息
@@ -289,7 +295,7 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
         function(err) {
             if (no(err)) {
                 let update = {};
-                for (let item of ['name', 'author', 'category', 'cover']) {
+                for (let item of ['name', 'author', 'category', 'cover', 'description']) {
                     update[item] = req.body[item] || _book[item];
                 }
                 Book.update({ _id: _book._id }, { $set: update }, this);

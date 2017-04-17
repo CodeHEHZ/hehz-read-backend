@@ -18,7 +18,7 @@ let username = process.env.MONGO_USERNAME || 'readAdmin',
 
 if (auth) {
     mongoose.connect('mongodb://' + username + ':' + password + '@' + host + ':' + port + '/' + database
-        + replica ? '?replicaSet=foba&authSource=admin' : '');
+        + (replica ? '?replicaSet=foba&authSource=admin' : ''));
 } else {
     mongoose.connect('mongodb://' + host + ':' + port + '/' + database);
 }
