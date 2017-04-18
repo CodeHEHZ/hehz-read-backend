@@ -35,7 +35,7 @@ let BookService = {
     /**
      * @function necessaryInfo
      * 剔除不需要的、或用户不能看见的信息
-     * 仅保留 'name'、'author'、'open'、'category'、'cover'、'_id' 字段
+     * 仅保留 'name'、'author'、'open'、'category'、'cover'、'description'、'_id' 字段
      *
      * @param {Object|[Object]} book 图书信息
      *

@@ -71,7 +71,7 @@ router.get('/:author/:name', function(req, res) {
  * {String}     book.name           书名
  * {String}     book.author         作者
  * {Boolean}    book.open           是否开放
- * {[String]}   book.category       种类
+ * {[String]}   book.category       书的标签
  * {String}     book.description    简介
  * {String}     book.cover          书的封面图片链接
  */
@@ -156,7 +156,9 @@ router.post('/', paramValidator(['book', 'object']), function(req, res, next) {
  * {String}     bookList[n].name        书名
  * {String}     bookList[n].author      作者
  * {String}     bookList[n].cover       书的封面图片链接
+ * {String}     bookList[n].category    书的标签
  * {String}     bookList[n].description 书的简介
+ * {Boolean}    bookList[n].open        是否开放
  */
 
 router.get('/list', function(req, res) {
@@ -171,7 +173,7 @@ router.get('/list', function(req, res) {
                 if (bookList) {
                     res.status(200).json(bookList);
                 } else {
-                    Book.find({}, 'name author cover', this);
+                    Book.find({}, 'name author cover category open description', this);
                 }
             }
         },
@@ -258,6 +260,7 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateBook'),
  * @param {[String]}    category    种类
  * @param {String}      cover       书的封面图片链接
  * @param {String}      description 简介
+ * @param {String}      id          书的 MongoDB _id（当修改书名和作者名时需要）
  *
  * @response 201 已修改
  * {String} message 提示信息
@@ -274,7 +277,11 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
     Step(
         // 先找书
         function() {
-            BookService.getSingleBook(req.params.author, req.params.name, 'original', this);
+            if (req.body.id) {
+                Book.findById(req.body.id, this);
+            } else {
+                BookService.getSingleBook(req.params.author, req.params.name, 'original', this);
+            }
         },
         // 找到了就先清空书的相关缓存
         function(err, book) {
@@ -287,7 +294,6 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
                 } else {
                     _book = book;
                     cache.update(_book._id, this);
-                    this();
                 }
             }
         },
