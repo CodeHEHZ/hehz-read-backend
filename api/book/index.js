@@ -7,6 +7,7 @@
  * 获取书单：GET /book/list
  * 创建书本：POST /book/new
  * 修改书本信息：PUT /book/:author/:name
+ * 获取书本的所有题目：GET /book/:author/:name/question
  * 开放书本：GET  /book/:author/:name/open
  * 开始测试：GET  /book/:author/:name/quiz
  * 提交测试：POST /book/:author/:name/quiz
@@ -23,6 +24,7 @@ let express = require('express'),
     QuizService = require('../quiz/quiz.service'),
     BookService = require('./book.service'),
     Book = require('../schema').Book,
+    Question = require('../schema').Question,
     md5 = require('object-hash').MD5,
     _ = require('lodash');
 
@@ -312,6 +314,49 @@ router.put('/:author/:name', ensureLoggedIn, permittedTo('ModifyBookInfo'), func
                 res.status(201).json({
                     message: 'Modified.'
                 });
+            }
+        }
+    );
+});
+
+
+/**
+ * 获取书本的所有题目
+ * GET /book/:author/:name/question
+ *
+ * @permission 'CreateQuestion'
+ *
+ * @response 200 成功获取所有题目
+ * {[Object]}   question    所有题目
+ */
+
+router.get('/:author/:name/question', ensureLoggedIn, permittedTo('CreateQuestion'), function(req, res) {
+    let no = new CheckError(res).check,
+        _book,
+        hash = md5({ questionCollection: [req.params.author, req.params.name] });
+
+    Step(
+        function() {
+          cache.get(hash, this);
+        },
+        function(err, questionCollection) {
+            if (no(err)) {
+                if (questionCollection)
+                    res.status(200).json(questionCollection);
+                else
+                    BookService.getSingleBook(req.params.author, req.params.name, 'safe', this);
+            }
+        },
+        function(err, book) {
+            if (no(err)) {
+                _book = book;
+                Question.find({ book: _book._id }, this);
+            }
+        },
+        function(err, questionCollection) {
+            if (no(err)) {
+                res.status(200).json({ question: questionCollection });
+                cache.set(hash, _book._id, { question: questionCollection }, () => {});
             }
         }
     );

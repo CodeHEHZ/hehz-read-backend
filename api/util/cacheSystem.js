@@ -15,6 +15,7 @@
  * - 经剔除敏感信息的用户信息：md5({ account: [username, 'safe'] })
  * - 题目：md5({ question: id })
  * - 不含答案的题目：md5({ question: [id, 'safe'] })
+ * - 书本的所有题目：md5({ questionCollection: [author, name] })
  * - 测试：md5({ quiz: id })
  * - 不含答案的测试：md5({ quiz: [id, 'safe'] })
  * - 用户组：md5({ group: title })
