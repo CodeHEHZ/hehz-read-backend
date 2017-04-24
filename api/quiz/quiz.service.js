@@ -29,13 +29,13 @@ let QuizService = {
     hash(id, mode) {
         switch (mode) {
             case 'safe':
-                return md5({ quiz: [id, 'safe'] });
+                return md5(JSON.stringify({ quiz: [id, 'safe'] }));
                 break;
             case 'original':
-                return md5({ quiz: id });
+                return md5(JSON.stringify({ quiz: id }));
                 break;
             default:
-                return md5({ quiz: id });
+                return md5(JSON.stringify({ quiz: id }));
         }
     },
 
@@ -100,7 +100,7 @@ let QuizService = {
             // 先通过 givenHash 查找缓存
             function() {
                 if (_.isFunction(givenHash)) {
-                    next();
+                    this();
                 } else {
                     cache.get(givenHash, this);
                 }
@@ -145,7 +145,7 @@ let QuizService = {
                         _quiz = quiz;
                         let group = this.group();
                         for (let question of _quiz.question) {
-                            QuestionService.getSingleQuestion(question, 'original', group());
+                            QuestionService.getSingleQuestion(question.id, 'original', group());
                         }
                     } else {
                         cb({
@@ -161,7 +161,7 @@ let QuizService = {
                 else {
                     _quiz.question = questions;
                     _safeQuiz = _this.necessaryInfo(_quiz);
-                    for (let index in questions) {
+                    for (let index = 0; index < questions.length; index++) {
                         questions[index] = questions._id;
                     }
                     let group = this.group();
@@ -170,7 +170,7 @@ let QuizService = {
                 }
             },
             function(err) {
-                cb(err, mode == 'safe' ? _safeQuiz : _quiz);
+                cb(err, mode === 'safe' ? _safeQuiz : _quiz);
             }
         );
     },
@@ -231,7 +231,7 @@ let QuizService = {
                 else {
                     let lock = 0;
                     for (let question of questions) {
-                        if (question.book != book) {
+                        if (question.book !== book) {
                             cb({
                                 name: 'UnacceptableQuestion',
                                 message: 'The question doesn\'t belong to this book.'

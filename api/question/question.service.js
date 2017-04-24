@@ -25,13 +25,13 @@ let QuestionService = {
     hash(id, mode) {
         switch (mode) {
             case 'safe':
-                return md5({ question: [id, 'safe'] });
+                return md5(JSON.stringify({ question: [id, 'safe'] }));
                 break;
             case 'original':
-                return md5({ question: id });
+                return md5(JSON.stringify({ question: id }));
                 break;
             default:
-                return md5({ question: id });
+                return md5(JSON.stringify({ question: id }));
         }
     },
 
@@ -99,6 +99,10 @@ let QuestionService = {
                     if (question) {
                         cb(null, question)
                     } else {
+                        if (mode === 'safe')
+                            _safeHash = _this.hash(id, 'safe');
+                        else
+                            _hash = _this.hash(id, 'original');
                         cache.get(_hash || _safeHash, this);
                     }
                 }
@@ -122,7 +126,7 @@ let QuestionService = {
                         _question = question;
                         _safeQuestion = _this.necessaryInfo(_question);
                         let group = this.group();
-                        if (mode == 'safe') {
+                        if (mode === 'safe') {
                             cache.set(_safeHash, _question._id, _safeQuestion, group());
                             cache.set(_this.hash(id, 'original'), _question._id, _question, group());
                         } else {
@@ -141,7 +145,7 @@ let QuestionService = {
             },
             // 根据模式返回
             function(err) {
-                cb(err, mode == 'safe' ? _safeQuestion : _question);
+                cb(err, mode === 'safe' ? _safeQuestion : _question);
             }
         );
     }

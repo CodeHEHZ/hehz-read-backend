@@ -27,8 +27,8 @@ let BookService = {
 
     hash(author, name, mode) {
         return mode === 'safe'
-            ? md5({ book: [author, name, 'safe'] })
-            : md5({ book: [author, name] });
+            ? md5(JSON.stringify({ book: [author, name, 'safe'] }))
+            : md5(JSON.stringify({ book: [author, name] }));
     },
 
 

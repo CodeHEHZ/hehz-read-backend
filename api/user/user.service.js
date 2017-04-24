@@ -26,13 +26,13 @@ let UserService = {
     hash(username, mode) {
         switch (mode) {
             case 'safe':
-                return md5({ account: [username, 'safe'] });
+                return md5(JSON.stringify({ account: [username, 'safe'] }));
                 break;
             case 'original':
-                return md5({ account: username });
+                return md5(JSON.stringify({ account: username }));
                 break;
             default:
-                return md5({ account: username });
+                return md5(JSON.stringify({ account: username }));
         }
     },
 

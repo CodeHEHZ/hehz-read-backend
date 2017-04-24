@@ -579,7 +579,7 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
         function(err, quiz) {
             if (no(err)) {
                 for (let question of quiz.question) {
-                    if (req.body.answer[question._id] && req.body.answer[question._id] == question.answer) {
+                    if (req.body.answer[question._id] && req.body.answer[question._id] === question.answer) {
                         score += 5;
                     }
                 }
