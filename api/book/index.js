@@ -26,6 +26,7 @@ let express = require('express'),
     BookService = require('./book.service'),
     Book = require('../schema').Book,
     Question = require('../schema').Question,
+    User = require('../schema').User,
     md5 = require('object-hash').MD5,
     _ = require('lodash');
 
@@ -465,8 +466,8 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
         _tempHash,
         _book,
         _quiz,
-        timeLimit = 330,
-        cooldown = 172800;
+        timeLimit = 330000,
+        cooldown = 172800000;
 
     Step(
         function() {
@@ -530,7 +531,7 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
                 let group = this.group();
 
                 // 330 seconds = 5.5 minutes
-                cache.set(tempHash, tempHash, { quiz: quiz._id, deadline: Date.now() + timeLimit - 30 }, timeLimit, group());
+                cache.set(_tempHash, _tempHash, { quiz: quiz._id, deadline: Date.now() + timeLimit - 30000 }, timeLimit, group());
                 // 172800 seconds = 2 days
                 cache.set(_hash, [], { quiz: quiz._id }, cooldown, group());
             }
@@ -539,7 +540,7 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
             if (no(err)) {
                 res.status(200).json({
                     quiz: _quiz,
-                    deadline: Date.now() + timeLimit - 30
+                    deadline: Date.now() + timeLimit - 30000
                 });
             }
         }
@@ -570,7 +571,8 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
     let no = new CheckError(res).check,
         tempHash,
         score = 0,
-        pass = false;
+        pass = false,
+        _book;
 
     Step(
         function() {
@@ -578,6 +580,7 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
         },
         function(err, book) {
             if (no(err)) {
+                _book = book;
                 tempHash = md5({
                     username: req.user.username,
                     book: book._id,
@@ -600,20 +603,35 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
         },
         function(err, quiz) {
             if (no(err)) {
-                for (let question of quiz.question) {
-                    if (req.body.answer[question._id] && req.body.answer[question._id] === question.answer) {
+                for (let i = 0; i < quiz.question.length; i++) {
+                    if (req.body.answer[i] && req.body.answer[i] === quiz.question[i].answer) {
                         score += 5;
                     }
                 }
 
                 if (score >= 90) {
                     pass = true;
+                    User.findByUsername(req.user.username, this);
+                } else {
+                    res.status(200).json({
+                        score,
+                        pass,
+                        message: '很遗憾，未能通过测试。请在两天后再次挑战'
+                    });
                 }
-
+            }
+        },
+        function(err, user) {
+            if (no(err)) {
+                user.update({ $addToSet: { book: _book._id } }, this);
+            }
+        },
+        function(err) {
+            if (no(err)) {
                 res.status(200).json({
                     score,
                     pass,
-                    message: pass ? '恭喜，通过测试' : '很遗憾，未能通过测试。请在两天后再次挑战'
+                    message: '恭喜，通过本书测试'
                 });
             }
         }

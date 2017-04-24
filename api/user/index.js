@@ -148,7 +148,7 @@ router.put('/password', ensureLoggedIn, function(req, res, next) {
         return;
     }
 
-    if (req.body.newPassword == req.body.presentPassword) {
+    if (req.body.newPassword === req.body.presentPassword) {
         res.status(400).json({
             error: 'SamePasswords',
             message: '新密码不可以与旧密码相同'
@@ -244,8 +244,8 @@ router.get('/:username', function(req, res) {
 router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), function(req, res, next) {
     // 只有超级管理员可以设他人用户组为超级管理员
     // 只有有「设他人为管理员」的用户组可以社他人用户组为管理员
-    if (req.body.group == 'admin' && req.user.group != 'admin'
-        || (req.body.group == 'manager' && !req.user.permission.includes('ChangeManager'))) {
+    if (req.body.group === 'admin' && req.user.group !== 'admin'
+        || (req.body.group === 'manager' && !req.user.permission.includes('ChangeManager'))) {
         return res.status(400).json({
             error: 'PermissionDenied',
             message: 'You don\'t have the permission to do this.'
