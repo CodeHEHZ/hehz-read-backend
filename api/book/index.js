@@ -396,7 +396,7 @@ router.get('/:author/:name/open', ensureLoggedIn, permittedTo('OpenQuiz'), funct
 
 
 /**
- * 开放书本
+ * 关闭书本
  * GET /book/:author/:name/close
  *
  * @permission 'OpenQuiz'
@@ -409,12 +409,30 @@ router.get('/:author/:name/open', ensureLoggedIn, permittedTo('OpenQuiz'), funct
  */
 
 router.get('/:author/:name/close', ensureLoggedIn, permittedTo('OpenQuiz'), function(req, res) {
-    let no = new CheckError(res).check;
+    let no = new CheckError(res).check,
+        _book;
 
     Step(
       function() {
-          Book.update({ author: req.params.author, name: req.params.name },
-            { $set: { open: false } }, this);
+          Book.findOne({ author: req.params.author, name: req.params.name }, this);
+      },
+      function(err, book) {
+          if (no(err)) {
+              if (book) {
+                  _book = book;
+                  book.update({ $set: { open: false } }, this);
+              } else {
+                  res.status(404).json({
+                      error: 'BookNotFound',
+                      message: '未找到您想要开放的书籍'
+                  });
+              }
+          }
+      },
+      function(err) {
+          if (no(err)) {
+              cache.update(_book._id, this);
+          }
       },
       function(err) {
           if (no(err)) {
@@ -481,6 +499,7 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
         },
         function(err, quiz) {
             if (no(err)) {
+                _quiz = quiz;
                 let group = this.group(),
                     tempHash = md5({
                         username: req.user.username,

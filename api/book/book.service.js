@@ -250,6 +250,10 @@ let BookService = {
                 }
             },
             function(err) {
+                if (err) cb(err);
+                cache.update(_book._id, this);
+            },
+            function(err) {
                 cb(err, {
                     message: 'Success'
                 });
