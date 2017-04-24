@@ -462,6 +462,7 @@ router.get('/:author/:name/close', ensureLoggedIn, permittedTo('OpenQuiz'), func
 router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), function(req, res){
     let no = new CheckError(res).check,
         _hash,
+        _tempHash,
         _book,
         _quiz,
         timeLimit = 330,
@@ -469,19 +470,45 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
 
     Step(
         function() {
-            BookService.getSingleBook(req.params.author, req.params.name, 'safe', this);
+            BookService.getSingleBook(req.params.author, req.params.name, 'original', this);
         },
         function(err, book) {
             if (no(err)) {
                 _book = book;
                 if (book.open) {
-                    _hash = md5({ username: req.user.username, book: _book._id });
-                    cache.get(_hash, this);
+                    _tempHash = md5(JSON.stringify({
+                        username: req.user.username,
+                        book: _book._id,
+                        test: 1
+                    }));
+                    cache.get(_tempHash, this);
                 } else {
                     res.status(400).json({
                         error: 'BookNotOpenForQuiz',
-                        message: 'This book is not open for quiz now.'
+                        message: '这本书还未开放测试'
                     });
+                }
+            }
+        },
+        function(err, testing) {
+            if (no(err)) {
+                if (testing) {
+                    Step(
+                        function() {
+                            QuizService.getQuiz(testing.quiz, 'safe', this);
+                        },
+                        function(err, quiz) {
+                            if (no(err)) {
+                                res.status(200).json({
+                                    quiz,
+                                    deadline: testing.deadline
+                                });
+                            }
+                        }
+                    );
+                } else {
+                    _hash = md5(JSON.stringify({ username: req.user.username, book: _book._id }));
+                    cache.get(_hash, this);
                 }
             }
         },
@@ -490,7 +517,7 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
                 if (tested) {
                     res.status(400).json({
                         error: 'TakingQuizTooFrequently',
-                        message: 'You have to take the quiz two days after your last quiz.'
+                        message: '你在上次考过这本书后需过两天才能再次考试'
                     });
                 } else {
                     QuizService.getQuiz(_book.quiz[Math.floor(Math.random() * _book.quiz.length)], 'safe', this);
@@ -500,14 +527,10 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
         function(err, quiz) {
             if (no(err)) {
                 _quiz = quiz;
-                let group = this.group(),
-                    tempHash = md5({
-                        username: req.user.username,
-                        book: _book._id,
-                        test: 1
-                    });
+                let group = this.group();
+
                 // 330 seconds = 5.5 minutes
-                cache.set(tempHash, tempHash, { quiz: quiz._id }, timeLimit, group());
+                cache.set(tempHash, tempHash, { quiz: quiz._id, deadline: Date.now() + timeLimit - 30 }, timeLimit, group());
                 // 172800 seconds = 2 days
                 cache.set(_hash, [], { quiz: quiz._id }, cooldown, group());
             }
@@ -516,8 +539,7 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
             if (no(err)) {
                 res.status(200).json({
                     quiz: _quiz,
-                    timestamp: Date.now(),
-                    timeLimit: 300
+                    deadline: Date.now() + timeLimit - 30
                 });
             }
         }
