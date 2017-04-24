@@ -9,6 +9,7 @@
  * 修改书本信息：PUT /book/:author/:name
  * 获取书本的所有题目：GET /book/:author/:name/question
  * 开放书本：GET  /book/:author/:name/open
+ * 关闭书本：GET  /book/:author/:name/close
  * 开始测试：GET  /book/:author/:name/quiz
  * 提交测试：POST /book/:author/:name/quiz
  */
@@ -393,6 +394,37 @@ router.get('/:author/:name/open', ensureLoggedIn, permittedTo('OpenQuiz'), funct
     );
 });
 
+
+/**
+ * 开放书本
+ * GET /book/:author/:name/close
+ *
+ * @permission 'OpenQuiz'
+ *
+ * @param {String}  name    书名
+ * @param {String}  author  作者
+ *
+ * @response 201 成功关闭书本
+ * {String} message 提示信息
+ */
+
+router.get('/:author/:name/close', ensureLoggedIn, permittedTo('OpenQuiz'), function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+      function() {
+          Book.update({ author: req.params.author, name: req.params.name },
+            { $set: { open: false } }, this);
+      },
+      function(err) {
+          if (no(err)) {
+              res.status(201).json({
+                  message: 'Success.'
+              });
+          }
+      }
+    );
+});
 
 /**
  * 开始测试

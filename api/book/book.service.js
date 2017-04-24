@@ -180,7 +180,6 @@ let BookService = {
                 if (err) cb(err);
                 else {
                     if (book) {
-                        _book = book;
                         this(null, book);
                     } else {
                         _this.getSingleBook(author, name, 'original', this);
@@ -191,6 +190,7 @@ let BookService = {
             function(err, book) {
                 if (err) cb(err);
                 else {
+                    _book = book;
                     Question.find({ book: book._id, open: true }, this);
                 }
             },
@@ -205,7 +205,7 @@ let BookService = {
                             message: 'There must be more than 25 questions for an open book.'
                         });
                     } else {
-                        // 这段过上一个礼拜我肯定就看不懂了
+                        // 这段过一个礼拜我肯定就看不懂了
                         let group = this.group();
                         // 循环 20 次来建 20 个测试
                         for (let i = 0; i < 20; i++) {
@@ -220,7 +220,7 @@ let BookService = {
                                         index;
                                     while (setLock) {
                                         index = Math.floor(Math.random() * questions.length);
-                                        index = index == questions.length ? (questions.length - 1) : index;
+                                        index = index === questions.length ? (questions.length - 1) : index;
                                         // 如果这个测试里已经有同样的问题，那就再随机一次
                                         setLock = questionSet.includes(questions[index]._id) ? 1 : 0;
                                     }

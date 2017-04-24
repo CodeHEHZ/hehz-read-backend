@@ -35,7 +35,7 @@ router.get('/:id', ensureLoggedIn, function(req, res) {
 
     Step(
         function() {
-            QuestionService.getSingleQuestion(req.params.id, this);
+            QuestionService.getSingleQuestion(req.params.id, 'safe', this);
         },
         function(err, question) {
             if (no(err)) {
@@ -55,7 +55,6 @@ router.get('/:id', ensureLoggedIn, function(req, res) {
  * @param {String}      bookId          要加题目的书的 MongoDB _id（以上三者中，只要有前两者或只有第三者即可）
  * @param {String}      question        问题
  * @param {[Object]}    option          选项
- * @param {String}      option[n].A     选项内容
  * @param {String}      answer          答案（标签如 'A'、'B'）
  *
  * @response 201 创建成功
@@ -112,7 +111,7 @@ router.post('/new', ensureLoggedIn, permittedTo('CreateQuestion'),
         },
         function(err, results) {
             if (no(err)) {
-                if (!results) {
+                if (results.length === 0) {
                     _question = new Question({
                         question: req.body.question,
                         book: _book._id,
