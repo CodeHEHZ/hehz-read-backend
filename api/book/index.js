@@ -581,11 +581,11 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
         function(err, book) {
             if (no(err)) {
                 _book = book;
-                tempHash = md5({
+                tempHash = md5(JSON.stringify({
                     username: req.user.username,
                     book: book._id,
                     test: 1
-                });
+                }));
                 cache.get(tempHash, this);
             }
         },
@@ -597,7 +597,7 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
                         message: 'Quiz expired or not even taken.'
                     });
                 } else {
-                    QuizService.getQuiz(quiz._id, 'original', this);
+                    QuizService.getQuiz(req.body.quiz, 'original', this);
                 }
             }
         },
@@ -611,19 +611,27 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
 
                 if (score >= 90) {
                     pass = true;
-                    User.findByUsername(req.user.username, this);
-                } else {
-                    res.status(200).json({
-                        score,
-                        pass,
-                        message: '很遗憾，未能通过测试。请在两天后再次挑战'
-                    });
                 }
+                User.findByUsername(req.user.username, this);
             }
         },
         function(err, user) {
             if (no(err)) {
-                user.update({ $addToSet: { book: _book._id } }, this);
+                let bookInfo = {
+                    id: _book._id,
+                    score,
+                    pass
+                };
+                if (user.book.filter(u => u.id === _book._id).length > 0) {
+                    User.update({
+                        _id: user._id,
+                        book: {
+                            $elemMatch: { _id: _book._id }
+                        }
+                    }, { $set: { "book.$": bookInfo } }, this);
+                } else {
+                    user.update({ $addToSet: { book: bookInfo } }, this);
+                }
             }
         },
         function(err) {
@@ -631,7 +639,7 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
                 res.status(200).json({
                     score,
                     pass,
-                    message: '恭喜，通过本书测试'
+                    message: pass ? '恭喜，通过本书测试' : '很遗憾，未能通过测试。请在两天后再次挑战'
                 });
             }
         }
