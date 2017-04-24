@@ -4,6 +4,7 @@
  * @function hash(username, mode)
  * @function necessaryInfo(user)
  * @function getSingleUser(username, mode(, givenHash), cb)
+ * @function getReadingStatus(username, cb)
  */
 
 let md5 = require('object-hash').MD5,
@@ -149,7 +150,76 @@ let UserService = {
                 }
             },
             function(err) {
-                cb(err, mode == 'safe' ? _safeUser : _user);
+                cb(err, mode === 'safe' ? _safeUser : _user);
+            }
+        );
+    },
+
+
+    /**
+     * @function getReadingStatus
+     * 获取用户的读书情况
+     *
+     * @param {String}      username    用户名
+     * @param {Function}    cb          回调函数
+     *
+     * @callback(err, status)
+     * {Error}      err                 错误信息，如无错则为 null
+     * {[Object]}   status              用户的阅读状态
+     * {String}     status[n].id        书的 MongoDB _id
+     * {Number}     status[n].score     用户上次的得分
+     * {Boolean}    status[n].pass      用户上次是否通过
+     * {Boolean}    status[n].testing   用户现在能否参加测试
+     */
+
+    getReadingStatus(username, cb) {
+        let _this = this,
+            _user,
+            _hash = md5(JSON.stringify({ readingStatus: username })),
+            _status = [],
+            _failedBook = [];
+
+        Step(
+            function() {
+                cache.get(_hash, this);
+            },
+            function(err, status) {
+                if (err) cb(err);
+                else if (status) {
+                    cb(null, status);
+                } else {
+                    _this.getSingleUser(username, 'original', this);
+                }
+            },
+            function(err, user) {
+                if (err) cb(err);
+                else {
+                    _user = user;
+                    let group = this.group();
+                    for (let test of _user.book) {
+                        if (test.pass) {
+                            _status.push(test);
+                        } else {
+                            _failedBook.push(test);
+                            let hash = md5(JSON.stringify({ username, book: test.id }));
+                            cache.get(hash, group());
+                        }
+                    }
+                }
+            },
+            function(err, tests) {
+                if (err) cb(err);
+                else {
+                    for (let i = 0; i < _failedBook.length; i++) {
+                        if (tests.filter(test => test.book === _failedBook[i].id))
+                            _failedBook[i].testing = true;
+                    }
+                    _status = _.concat(_status, _failedBook);
+                    cache.set(_hash, _user._id, _status, this);
+                }
+            },
+            function(err) {
+                cb(err, _status);
             }
         );
     }

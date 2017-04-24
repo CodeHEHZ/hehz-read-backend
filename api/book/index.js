@@ -170,16 +170,7 @@ router.get('/list', function(req, res) {
 
     Step(
         function() {
-            cache.get('cache: bookList', this);
-        },
-        function(err, bookList) {
-            if (no(err)) {
-                if (bookList) {
-                    res.status(200).json(bookList);
-                } else {
-                    Book.find({}, 'name author cover category open description', this);
-                }
-            }
+            BookService.getBookList(this);
         },
         function(err, bookList) {
             if (no(err)) {
@@ -531,9 +522,9 @@ router.get('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'), funct
                 let group = this.group();
 
                 // 330 seconds = 5.5 minutes
-                cache.set(_tempHash, _tempHash, { quiz: quiz._id, deadline: Date.now() + timeLimit - 30000 }, timeLimit, group());
+                cache.set(_tempHash, _tempHash, { quiz: quiz._id, deadline: Date.now() + timeLimit - 30000 }, timeLimit / 1000, group());
                 // 172800 seconds = 2 days
-                cache.set(_hash, [], { quiz: quiz._id }, cooldown, group());
+                cache.set(_hash, [], { quiz: quiz._id, book: _book._id }, cooldown / 1000, group());
             }
         },
         function(err) {
@@ -617,21 +608,25 @@ router.post('/:author/:name/quiz', ensureLoggedIn, permittedTo('TakeTest'),
         },
         function(err, user) {
             if (no(err)) {
-                let bookInfo = {
+                let group = this.group(),
+                    bookInfo = {
                     id: _book._id,
                     score,
-                    pass
+                    pass,
+                    timestamp: Date.now()
                 };
                 if (user.book.filter(u => u.id === _book._id).length > 0) {
                     User.update({
                         _id: user._id,
                         book: {
-                            $elemMatch: { _id: _book._id }
+                            $elemMatch: { id: _book._id }
                         }
-                    }, { $set: { "book.$": bookInfo } }, this);
+                    }, { $set: { "book.$": bookInfo } }, group());
                 } else {
-                    user.update({ $addToSet: { book: bookInfo } }, this);
+                    user.update({ $addToSet: { book: bookInfo } }, group());
                 }
+                user.update({ $addToSet: { testRecord: bookInfo } }, group());
+                cache.update(user._id, group());
             }
         },
         function(err) {

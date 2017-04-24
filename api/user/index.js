@@ -9,6 +9,7 @@
  * 获取用户信息：GET /:username
  * 修改用户所属的用户组：PUT /:username/group
  * 修改用户信息（除用户组）：PUT /:username
+ * 获取读书情况：GET /:username/status
  */
 
 let express = require('express'),
@@ -349,6 +350,27 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
                 res.status(201).json({
                     message: 'Modified.'
                 });
+            }
+        }
+    );
+});
+
+
+/**
+ * 获取读书情况
+ * GET /user/:username/status
+ */
+
+router.get('/:username/status', function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            UserService.getReadingStatus(req.params.username, this);
+        },
+        function(err, status) {
+            if (no(err)) {
+                res.status(200).json({ status });
             }
         }
     );

@@ -5,6 +5,7 @@
  * @function necessaryInfo(book)
  * @function getSingleBook(author, name, mode(, hash), cb)
  * @function openForQuiz(author, name, cb)
+ * @function getBookList(cb)
  */
 
 let _ = require('lodash'),
@@ -257,6 +258,41 @@ let BookService = {
                 cb(err, {
                     message: 'Success'
                 });
+            }
+        );
+    },
+
+
+    /**
+     * @function getBookList
+     * 获取所有书目
+     *
+     * @param {Function}    cb  回调函数
+     *
+     * @callback(err, bookList)
+     */
+
+    getBookList(cb) {
+        Step(
+            function() {
+                cache.get('cache: bookList', this);
+            },
+            function(err, bookList) {
+                if (err) cb(err);
+                else {
+                    if (bookList) {
+                        cb(null, bookList)
+                    } else {
+                        Book.find({}, 'name author cover category open description', this);
+                    }
+                }
+            },
+            function(err, bookList) {
+                if (err) cb(err);
+                else {
+                    cb(null, bookList);
+                    cache.set('cache: bookList', bookList);
+                }
             }
         );
     }
