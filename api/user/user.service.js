@@ -6,6 +6,7 @@
  * @function getSingleUser(username, mode(, givenHash), cb)
  * @function getReadingStatus(username, cb)
  * @function setTag(username, users, tag, action, cb)
+ * @function allowTag(username, users, tag, action, cb)
  * @function getUserList(username, cb)
  */
 
@@ -265,30 +266,13 @@ let UserService = {
                 if (err) cb(err);
                 else {
                     _user = user;
-                    switch (_user.group) {
-                        case 'admin':
-                            _userGroupToTag = ['student', 'teacher', 'manager', 'admin'];
-                            this();
-                            break;
-                        case 'manager':
-                            _userGroupToTag = ['student', 'teacher'];
-                            this();
-                            break;
-                        case 'teacher':
-                            _userGroupToTag = ['student'];
-                            this();
-                            break;
-                        default:
-                            cb({
-                                name: 'PermissionDenied',
-                                message: '你所在的用户组不能进行这样的操作'
-                            });
-                    }
+                    _userGroupToTag = tagPermission(_user, this);
+                    this();
                 }
             },
             function() {
                 if (action === 'add') {
-                    UserTag.update({}, {$addToSet: {tag}}, this);
+                    UserTag.update({}, { $addToSet: { tag } }, this);
                 } else {
                     this();
                 }
@@ -325,6 +309,100 @@ let UserService = {
                 else {
                     User.update({ _id: _user._id }, { $addToSet: { tagAbleToSee: tag } }, cb);
                 }
+            }
+        );
+    },
+
+
+    /**
+     * @function allowTag
+     * 允许／拒绝用户查看特定用标签用户
+     *
+     * @param {String}      username    正在设置标签的用户
+     * @param {[String]}    users       要为之设置标签用户
+     * @param {String}      tag         标签名
+     * @param {String}      action      动作（'add' / 'pull'）
+     * @param {Function}    cb          回调函数
+     *
+     * @callback(err)
+     * {Error}  err     错误信息，如无错则为 null
+     */
+
+    allowTag(username, users, tag, action, cb) {
+        let _this = this,
+            _user,
+            _userGroupToTag = [];
+
+        if (!_.isArray(users))
+            users = [users];
+
+        if (!_.isString(username) || !_.isString(tag) || !['add', 'pull'].includes(action) || !_.isFunction(cb)) {
+            cb({
+                name: 'WrongInput',
+                message: 'UserService.addTag：错误的参数'
+            });
+        }
+
+        Step(
+            function() {
+                _this.getSingleUser(username, 'original', this);
+            },
+            function(err, user) {
+                if (err) cb(err);
+                else {
+                    _user = user;
+                    _userGroupToTag = tagPermission(_user, cb);
+                    this();
+                }
+            },
+            function() {
+                if (action === 'add') {
+                    UserTag.update({}, { $addToSet: { tag } }, this);
+                } else {
+                    this();
+                }
+            },
+            function(err) {
+                if (err) cb(err);
+                else {
+                    let act = {};
+                    if (action === 'add') {
+                        act = {
+                            $addToSet: { tagAbleToSee: tag }
+                        }
+                    } else if (action === 'pull') {
+                        act = {
+                            $pull: { tagAbleToSee: tag }
+                        }
+                    }
+                    User.update({
+                        username: { $in: users },
+                        group: { $in: _userGroupToTag }
+                    }, act, {
+                        multi: true
+                    }, this);
+                }
+            },
+            function(err) {
+                if (err) cb(err);
+                else {
+                    User.find({
+                        username: { $in: users },
+                        group: { $in: _userGroupToTag }
+                    }, this);
+                }
+            },
+            function(err, userSet) {
+                if (err) cb(err);
+                else {
+                    let group = this.group();
+                    for (user of userSet) {
+                        cache.update(user._id, group());
+                    }
+                }
+            },
+            function(err) {
+                cb(err);
             }
         );
     },
@@ -395,5 +473,25 @@ let UserService = {
         );
     }
 };
+
+
+function tagPermission(user, cb) {
+    switch (user.group) {
+        case 'admin':
+            return ['student', 'teacher', 'manager', 'admin'];
+            break;
+        case 'manager':
+            return ['student', 'teacher'];
+            break;
+        case 'teacher':
+            return ['student'];
+            break;
+        default:
+            cb({
+                name: 'PermissionDenied',
+                message: '你所在的用户组不能进行这样的操作'
+            });
+    }
+}
 
 module.exports = UserService;

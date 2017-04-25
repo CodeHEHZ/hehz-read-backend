@@ -10,7 +10,7 @@
  * 获取用户列表：GET /user/list
  * 为用户增加标签：PUT /user/tag
  * 为用户删除标签：DELETE /user/tag
- * 允许某一（些）用户看到标签用户：POST /user/tag
+ * 允许／拒绝用户查看特定用标签用户：POST /user/tag
  * 获取用户信息：GET /user/:username
  * 修改用户所属的用户组：PUT /user/:username/group
  * 修改用户信息（除用户组）：PUT /user/:username
@@ -265,7 +265,7 @@ router.get('/list', ensureLoggedIn, function(req, res) {
  * {String} message 提示信息
  */
 
-router.put('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, function(req, res) {
+router.put('/tag', paramValidator('user', 'tag'), ensureLoggedIn, function(req, res) {
     let no = new CheckError(res).check;
 
     Step(
@@ -287,14 +287,14 @@ router.put('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, func
  * 为用户删除标签
  * DELETE /user/tag
  *
- * @param {String/[String]} user    被添加标签用户名
- * @param {String}          tag     要添加的标签名
+ * @param {String/[String]} user    被删除标签用户名
+ * @param {String}          tag     要删除的标签名
  *
  * @response 201 删除成功
  * {String} message 提示信息
  */
 
-router.delete('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, function(req, res) {
+router.delete('/tag', paramValidator('user', 'tag'), ensureLoggedIn, function(req, res) {
     let no = new CheckError(res).check;
 
     Step(
@@ -308,6 +308,36 @@ router.delete('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, f
               });
           }
       }
+    );
+});
+
+
+/**
+ * 允许／拒绝用户查看特定用标签用户
+ * POST /user/tag
+ *
+ * @param {String/[String]} user    被添加／删除标签用户名
+ * @param {String}          tag     要添加／删除的标签名
+ * @param {String}          action  添加／删除（'add' / 'pull'）
+ *
+ * @response 201 修改成功
+ * {String} message 提示信息
+ */
+
+router.post('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            UserService.allowTag(req.user.username, req.body.user, req.body.tag, req.body.action, this);
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: '修改成功'
+                });
+            }
+        }
     );
 });
 
