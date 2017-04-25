@@ -22,7 +22,7 @@ let User = new Schema({
     group: { type: String, default: 'student' },
     book: { type: [Schema.Types.Mixed], default: [] },
     testRecord: { type: [Schema.Types.Mixed], default: [] },
-    tag: { type: [String], default: ['reader'] },
+    tag: { type: [String], default: [] },
     tagAbleToSee: { type: [String], default: [] }
 });
 

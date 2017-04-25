@@ -6,11 +6,14 @@
  * 登录：POST /user/login
  * 登出：GET  /user/logout
  * 更改密码：PUT /user/password
+ * 获取读书情况：GET /user/:username/status
+ * 获取用户列表：GET /user/list
+ * 为用户增加标签：PUT /user/tag
+ * 为用户删除标签：DELETE /user/tag
+ * 允许某一（些）用户看到标签用户：POST /user/tag
  * 获取用户信息：GET /user/:username
  * 修改用户所属的用户组：PUT /user/:username/group
  * 修改用户信息（除用户组）：PUT /user/:username
- * 获取读书情况：GET /user/:username/status
- * 获取用户列表：GET /user/list
  */
 
 let express = require('express'),
@@ -24,7 +27,8 @@ let express = require('express'),
     cache = require('../util/cacheSystem'),
     permittedTo = require('../util/permittedTo.middleware'),
     CheckError = require('../util/checkError'),
-    captchaValidator = require('../util/captchaValidator.middleware');
+    captchaValidator = require('../util/captchaValidator.middleware'),
+    paramValidator = require('../util/paramValidator.middleware');
 
 
 router.get('/', ensureLoggedIn, function(req, res) {
@@ -204,6 +208,111 @@ router.put('/password', ensureLoggedIn, function(req, res, next) {
 
 
 /**
+ * 获取读书情况
+ * GET /user/:username/status
+ */
+
+router.get('/:username/status', function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            UserService.getReadingStatus(req.params.username, this);
+        },
+        function(err, status) {
+            if (no(err)) {
+                res.status(200).json({ status });
+            }
+        }
+    );
+});
+
+
+/**
+ * 获取用户列表
+ * GET /user/list
+ *
+ * @response 200 userList
+ * {[Object]}   user    用户
+ */
+
+router.get('/list', ensureLoggedIn, function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            UserService.getUserList(req.user.username, this);
+        },
+        function(err, userList) {
+            if (no(err)) {
+                res.status(200).json({
+                    userList
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 为用户增加标签
+ * PUT /user/tag
+ *
+ * @param {String/[String]} user    被添加标签用户名
+ * @param {String}          tag     要添加的标签名
+ *
+ * @response 201 添加成功
+ * {String} message 提示信息
+ */
+
+router.put('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            UserService.setTag(req.user.username, req.body.user, req.body.tag, 'add', this);
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: '添加成功'
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 为用户删除标签
+ * DELETE /user/tag
+ *
+ * @param {String/[String]} user    被添加标签用户名
+ * @param {String}          tag     要添加的标签名
+ *
+ * @response 201 删除成功
+ * {String} message 提示信息
+ */
+
+router.delete('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+      function() {
+          UserService.setTag(req.user.username, req.body.user, req.body.tag, 'pull', this);
+      },
+      function(err) {
+          if (no(err)) {
+              res.status(201).json({
+                  message: '删除成功'
+              });
+          }
+      }
+    );
+});
+
+
+/**
  * 获取用户信息
  * GET /user/:username
  *
@@ -247,7 +356,7 @@ router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), f
     // 只有超级管理员可以设他人用户组为超级管理员
     // 只有有「设他人为管理员」的用户组可以社他人用户组为管理员
     if (req.body.group === 'admin' && req.user.group !== 'admin'
-        || (req.body.group === 'manager' && !req.user.permission.includes('ChangeManager'))) {
+      || (req.body.group === 'manager' && !req.user.permission.includes('ChangeManager'))) {
         return res.status(400).json({
             error: 'PermissionDenied',
             message: 'You don\'t have the permission to do this.'
@@ -255,46 +364,46 @@ router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), f
     }
 
     let no = new CheckError(res).check,
-        _user;
+      _user;
 
     Step(
-        function() {
-            GroupService.getGroupInfo(req.body.group, this);
-        },
-        function(err) {
-            if (no(err)) {
-                User.findByUsername(req.params.username, this);
-            }
-        },
-        function(err, user) {
-            if (no(err)) {
-                if (user) {
-                    _user = user;
-                    cache.update(user._id, this);
-                } else {
-                    res.status(404).json({
-                        name: 'UserNotFound',
-                        message: 'The user doesn\'t exist.'
-                    });
-                }
-            }
-        },
-        function(err) {
-            if (no(err)) {
-                _user.update({
-                    $set: {
-                        group: req.body.group
-                    }
-                }, this);
-            }
-        },
-        function(err) {
-            if (no(err)) {
-                res.status(201).json({
-                    message: 'Modified.'
-                });
-            }
-        }
+      function() {
+          GroupService.getGroupInfo(req.body.group, this);
+      },
+      function(err) {
+          if (no(err)) {
+              User.findByUsername(req.params.username, this);
+          }
+      },
+      function(err, user) {
+          if (no(err)) {
+              if (user) {
+                  _user = user;
+                  cache.update(user._id, this);
+              } else {
+                  res.status(404).json({
+                      name: 'UserNotFound',
+                      message: 'The user doesn\'t exist.'
+                  });
+              }
+          }
+      },
+      function(err) {
+          if (no(err)) {
+              _user.update({
+                  $set: {
+                      group: req.body.group
+                  }
+              }, this);
+          }
+      },
+      function(err) {
+          if (no(err)) {
+              res.status(201).json({
+                  message: 'Modified.'
+              });
+          }
+      }
     );
 });
 
@@ -314,7 +423,7 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
     let no = new CheckError(res).check,
         operationField = ['username', 'uid'],
         _user;
-    
+
     if (!(req.body.username || req.body.uid)) {
         return res.status(400).json({
             error: 'MissingParam(s)',
@@ -322,15 +431,16 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
         });
     }
     Step(
-        function() {
-            User.findByUsername(req.params.username, this);
-        },
-        function(err, user) {
-            if (no(err)) {
-                if (user) {
-                    _user = user;
-                    cache.update(user._id, this);
-                } else {res.status(404).json({
+      function() {
+          User.findByUsername(req.params.username, this);
+      },
+      function(err, user) {
+          if (no(err)) {
+              if (user) {
+                  _user = user;
+                  cache.update(user._id, this);
+                } else {
+                    res.status(404).json({
                         name: 'UserNotFound',
                         message: 'The user doesn\'t exist.'
                     });
@@ -350,53 +460,6 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
             if (no(err)) {
                 res.status(201).json({
                     message: 'Modified.'
-                });
-            }
-        }
-    );
-});
-
-
-/**
- * 获取读书情况
- * GET /user/:username/status
- */
-
-router.get('/:username/status', function(req, res) {
-    let no = new CheckError(res).check;
-
-    Step(
-        function() {
-            UserService.getReadingStatus(req.params.username, this);
-        },
-        function(err, status) {
-            if (no(err)) {
-                res.status(200).json({ status });
-            }
-        }
-    );
-});
-
-
-/**
- * 获取用户列表
- * GET /user/list
- *
- * @response 200 userList
- * {[Object]}   user    用户
- */
-
-router.get('/list', ensureLoggedIn, function(req, res) {
-    let no = new CheckError(res).check;
-
-    Step(
-        function() {
-            UserService.getUserList(req.user.username, this);
-        },
-        function(err, userList) {
-            if (no(err)) {
-                res.status(200).json({
-                    userList
                 });
             }
         }

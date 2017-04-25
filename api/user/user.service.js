@@ -5,6 +5,7 @@
  * @function necessaryInfo(user)
  * @function getSingleUser(username, mode(, givenHash), cb)
  * @function getReadingStatus(username, cb)
+ * @function setTag(username, users, tag, action, cb)
  * @function getUserList(username, cb)
  */
 
@@ -228,6 +229,108 @@ let UserService = {
 
 
     /**
+     * @function setTag
+     * 添加 / 删除用户的标签
+     *
+     * @param {String}      username    正在设置标签的用户
+     * @param {[String]}    users       要为之设置标签用户
+     * @param {String}      tag         标签名
+     * @param {String}      action      动作（add / pull）
+     * @param {Function}    cb          回调函数
+     *
+     * @callback(err)
+     * {Error}  err     错误信息，如无错则为 null
+     */
+
+    setTag(username, users, tag, action, cb) {
+        let _this = this,
+            _user,
+            _userGroupToTag = [];
+
+        if (!_.isArray(users))
+            users = [users];
+
+        if (!_.isString(username) || !_.isString(tag) || !['add', 'pull'].includes(action) || !_.isFunction(cb)) {
+            cb({
+                name: 'WrongInput',
+                message: 'UserService.addTag：错误的参数'
+            });
+        }
+
+        Step(
+            function() {
+                _this.getSingleUser(username, 'original', this);
+            },
+            function(err, user) {
+                if (err) cb(err);
+                else {
+                    _user = user;
+                    switch (_user.group) {
+                        case 'admin':
+                            _userGroupToTag = ['student', 'teacher', 'manager', 'admin'];
+                            this();
+                            break;
+                        case 'manager':
+                            _userGroupToTag = ['student', 'teacher'];
+                            this();
+                            break;
+                        case 'teacher':
+                            _userGroupToTag = ['student'];
+                            this();
+                            break;
+                        default:
+                            cb({
+                                name: 'PermissionDenied',
+                                message: '你所在的用户组不能进行这样的操作'
+                            });
+                    }
+                }
+            },
+            function() {
+                if (action === 'add') {
+                    UserTag.update({}, {$addToSet: {tag}}, this);
+                } else {
+                    this();
+                }
+            },
+            function(err) {
+                if (err) cb(err);
+                else {
+                    let act = {};
+                    if (action === 'add') {
+                        act = {
+                            $addToSet: { tag }
+                        }
+                    } else if (action === 'pull') {
+                        act = {
+                            $pull: { tag }
+                        }
+                    }
+                    User.update({
+                        username: { $in: users },
+                        group: { $in: _userGroupToTag }
+                    }, act, {
+                        multi: true
+                    }, this);
+                }
+            },
+            function(err) {
+                if (err) cb(err);
+                else {
+                    cache.update(_user._id, this);
+                }
+            },
+            function(err) {
+                if (err) cb(err);
+                else {
+                    User.update({ _id: _user._id }, { $addToSet: { tagAbleToSee: tag } }, cb);
+                }
+            }
+        );
+    },
+
+
+    /**
      * @function getUserList
      * 获取用户可见的用户列表
      *
@@ -266,9 +369,13 @@ let UserService = {
                     if (userList) {
                         cb(null, userList);
                     } else {
-                        let group = this.group();
-                        for (let tag of _user.tagAbleToSee) {
-                            User.find({ tag }, group());
+                        if (_user.group === 'admin') {
+                            User.find({}, this);
+                        } else {
+                            let group = this.group();
+                            for (let tag of _user.tagAbleToSee) {
+                                User.find({ tag }, group());
+                            }
                         }
                     }
                 }
