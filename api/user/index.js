@@ -2,14 +2,15 @@
  * @file 用户接口
  * @author IncredibLink(incrediblelink@gmail.com)
  *
- * 注册：POST /register
- * 登录：POST /login
- * 登出：GET  /logout
- * 更改密码：PUT /password
- * 获取用户信息：GET /:username
- * 修改用户所属的用户组：PUT /:username/group
- * 修改用户信息（除用户组）：PUT /:username
- * 获取读书情况：GET /:username/status
+ * 注册：POST /user/register
+ * 登录：POST /user/login
+ * 登出：GET  /user/logout
+ * 更改密码：PUT /user/password
+ * 获取用户信息：GET /user/:username
+ * 修改用户所属的用户组：PUT /user/:username/group
+ * 修改用户信息（除用户组）：PUT /user/:username
+ * 获取读书情况：GET /user/:username/status
+ * 获取用户列表：GET /user/list
  */
 
 let express = require('express'),
@@ -371,6 +372,32 @@ router.get('/:username/status', function(req, res) {
         function(err, status) {
             if (no(err)) {
                 res.status(200).json({ status });
+            }
+        }
+    );
+});
+
+
+/**
+ * 获取用户列表
+ * GET /user/list
+ *
+ * @response 200 userList
+ * {[Object]}   user    用户
+ */
+
+router.get('/list', ensureLoggedIn, function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            UserService.getUserList(req.user.username, this);
+        },
+        function(err, userList) {
+            if (no(err)) {
+                res.status(200).json({
+                    userList
+                });
             }
         }
     );

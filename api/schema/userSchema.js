@@ -21,7 +21,9 @@ let User = new Schema({
     uid: String,
     group: { type: String, default: 'student' },
     book: { type: [Schema.Types.Mixed], default: [] },
-    testRecord: { type: [Schema.Types.Mixed], default: [] }
+    testRecord: { type: [Schema.Types.Mixed], default: [] },
+    tag: { type: [String], default: ['reader'] },
+    tagAbleToSee: { type: [String], default: [] }
 });
 
 User.plugin(passportLocalMongoose);

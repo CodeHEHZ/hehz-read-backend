@@ -5,13 +5,15 @@
  * @function necessaryInfo(user)
  * @function getSingleUser(username, mode(, givenHash), cb)
  * @function getReadingStatus(username, cb)
+ * @function getUserList(username, cb)
  */
 
 let md5 = require('object-hash').MD5,
     Step = require('step'),
     _ = require('lodash'),
     cache = require('../util/cacheSystem'),
-    User = require('../schema').User;
+    User = require('../schema').User,
+    UserTag = require('../schema').UserTag;
 
 let UserService = {
     /**
@@ -211,8 +213,8 @@ let UserService = {
                 if (err) cb(err);
                 else {
                     for (let i = 0; i < _failedBook.length; i++) {
-                        if (tests.filter(test => test.book === _failedBook[i].id))
-                            _failedBook[i].testing = true;
+                        if (tests.filter(test => test ? test.book : null === _failedBook[i].id).length > 0)
+                            _failedBook[i].cooldown = true;
                     }
                     _status = _.concat(_status, _failedBook);
                     cache.set(_hash, _user._id, _status, this);
@@ -220,6 +222,68 @@ let UserService = {
             },
             function(err) {
                 cb(err, _status);
+            }
+        );
+    },
+
+
+    /**
+     * @function getUserList
+     * 获取用户可见的用户列表
+     *
+     * @param {String}      username    正在查询用户列表的用户
+     * @param {Function}    cb          回调函数
+     *
+     * @callback(err, userList)
+     * {Error}      err         错误信息，如无错则为 null
+     * {[Object]}   userList    用户列表
+     */
+
+    getUserList(username, cb) {
+        let _user,
+            _hash,
+            _this = this;
+
+        Step(
+            function() {
+                _this.getSingleUser(username, 'original', this);
+            },
+            function(err, user) {
+                if (err) cb(err);
+                else {
+                    _user = user;
+                    if (_user.group === 'admin') {
+                        _hash = md5(JSON.stringify({ userList: ['*'] }));
+                    } else {
+                        _hash = md5(JSON.stringify({ userList: (_user.tagAbleToSee || []).sort() }));
+                    }
+                    cache.get(_hash, this);
+                }
+            },
+            function(err, userList) {
+                if (err) cb(err);
+                else {
+                    if (userList) {
+                        cb(null, userList);
+                    } else {
+                        let group = this.group();
+                        for (let tag of _user.tagAbleToSee) {
+                            User.find({ tag }, group());
+                        }
+                    }
+                }
+            },
+            function(err, users) {
+                if (err) cb(err);
+                else {
+                    users = _.union(users);
+                    let idSet = [_user._id];
+                    for (let user of users) {
+                        idSet.push(user._id);
+                    }
+                    cache.set(_hash, idSet, users);
+                    cb(null, users);
+                }
             }
         );
     }

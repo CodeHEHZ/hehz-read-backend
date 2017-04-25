@@ -7,6 +7,7 @@
  */
 
 let User = require('./userSchema'),
+    UserTag = require('./userTagSchema'),
     Group = require('./groupSchema'),
     Book = require('./bookSchema'),
     Question = require('./questionSchema'),
@@ -16,6 +17,7 @@ let User = require('./userSchema'),
 // 请熟悉 JavaScript ES6 规范
 module.exports = {
     User,
+    UserTag,
     Group,
     Book,
     Question,
