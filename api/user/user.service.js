@@ -185,15 +185,7 @@ let UserService = {
 
         Step(
             function() {
-                cache.get(_hash, this);
-            },
-            function(err, status) {
-                if (err) cb(err);
-                else if (status) {
-                    cb(null, status);
-                } else {
-                    _this.getSingleUser(username, 'original', this);
-                }
+                _this.getSingleUser(username, 'original', this);
             },
             function(err, user) {
                 if (err) cb(err);
@@ -219,11 +211,8 @@ let UserService = {
                             _failedBook[i].cooldown = true;
                     }
                     _status = _.concat(_status, _failedBook);
-                    cache.set(_hash, _user._id, _status, this);
+                    cb(err, _status);
                 }
-            },
-            function(err) {
-                cb(err, _status);
             }
         );
     },
