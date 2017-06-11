@@ -65,17 +65,26 @@ router.post('/register', function(req, res) {
                     message: '不允许该用户名'
                 });
             } else {
-                this();
+                User.find({ username: req.body.username }, this);
             }
         },
-        function() {
-            if (schoolList.includes(req.body.school)) {
-                User.find({ uid: req.body.uid, school: req.body.school }, this);
-            } else {
-                res.status(400).json({
-                    error: 'SchoolNotSupported',
-                    message: '暂不支持添加该校人员'
-                });
+        function(err, users) {
+            if (no(err)) {
+                if (users.length !== 0) {
+                    res.status(400).json({
+                        error: 'RepeatedUsername',
+                        message: '已有相同用户名的用户'
+                    });
+                } else {
+                    if (schoolList.includes(req.body.school)) {
+                        User.find({ uid: req.body.uid, school: req.body.school }, this);
+                    } else {
+                        res.status(400).json({
+                            error: 'SchoolNotSupported',
+                            message: '暂不支持添加该校人员'
+                        });
+                    }
+                }
             }
         },
         function(err, users) {
@@ -506,29 +515,47 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
     }
 
     Step(
-      function() {
-          User.findByUsername(req.params.username, this);
-      },
-      function(err, user) {
-          if (no(err)) {
-              if (user) {
-                  _user = user;
-                  cache.update(user._id, this);
+        function() {
+            User.findByUsername(req.params.username, this);
+        },
+        function(err, user) {
+            if (no(err)) {
+                if (user) {
+                    _user = user;
+                    cache.update(user._id, this);
                 } else {
                     res.status(404).json({
                         name: 'UserNotFound',
-                        message: 'The user doesn\'t exist.'
+                        message: '用户不存在'
                     });
                 }
             }
         },
         function(err) {
             if (no(err)) {
-                let update = {};
-                for (let item of operationField) {
-                    update[item] = req.body[item] || _user[item];
+                if (req.body.uid || req.body.school) {
+                    User.find({ uid: req.body.uid || _user.uid, school: req.body.school || _user.school }, this);
+                } else if (req.body.username && (req.body.username !== _user.username)) {
+                    User.find({ username: req.body.username }, this);
+                } else {
+                    this();
                 }
-                _user.update({ $set: update }, this);
+            }
+        },
+        function(err, users) {
+            if (no(err)) {
+                if (users.length !== 0) {
+                    res.status(400).json({
+                        error: 'RepeatedUidOrUsername',
+                        message: '该校内已有相同学号者注册，或已有该用户名已被注册'
+                    });
+                } else {
+                    let update = {};
+                    for (let item of operationField) {
+                        update[item] = req.body[item] || _user[item];
+                    }
+                    _user.update({ $set: update }, this);
+                }
             }
         },
         function(err) {
