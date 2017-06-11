@@ -59,6 +59,16 @@ router.post('/register', function(req, res) {
     
     Step(
         function() {
+            if (['new', 'admin'].includes(req.body.username)) {
+                res.status(400).json({
+                    error: 'UsernameNotPermitted',
+                    message: '不允许该用户名'
+                });
+            } else {
+                this();
+            }
+        },
+        function() {
             if (schoolList.includes(req.body.school)) {
                 User.find({ uid: req.body.uid, school: req.body.school }, this);
             } else {
