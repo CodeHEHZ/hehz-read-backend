@@ -30,6 +30,8 @@ let express = require('express'),
     captchaValidator = require('../util/captchaValidator.middleware'),
     paramValidator = require('../util/paramValidator.middleware');
 
+let schoolList = process.env.SchoolList || ['华二黄中', '华师大二附中'];
+
 
 router.get('/', ensureLoggedIn, function(req, res) {
     res.status(200).cookie('user', req.user).json(req.user);
@@ -40,7 +42,9 @@ router.get('/', ensureLoggedIn, function(req, res) {
  * 注册用户
  * POST /user/register
  * @param {String}  username    用户名
- * @param {String}  schoolId    学号
+ * @param {String}  name        姓名
+ * @param {String}  school      学校
+ * @param {String}  uid         学号
  * @param {String}  group       用户组，默认为 student
  * @param {String}  password    密码
  *
@@ -55,12 +59,31 @@ router.post('/register', function(req, res) {
     
     Step(
         function() {
-            let user = {
-                username: req.body.username,
-                schoolId: req.body.id,
-                group: req.body.group
-            };
-            User.register(new User(user), req.body.password, this);
+            if (schoolList.includes(req.body.school)) {
+                User.find({ uid: req.body.uid, school: req.body.school }, this);
+            } else {
+                res.status(400).json({
+                    error: 'SchoolNotSupported',
+                    message: '暂不支持添加该校人员'
+                });
+            }
+        },
+        function(err, users) {
+            if (no(err)) {
+                if (users.length !== 0) {
+                    res.status(400).json({
+                        error: 'RepeatedUid',
+                        message: '该校内已有相同学号者注册'
+                    })
+                } else {
+                    let user = {
+                        username: req.body.username,
+                        uid: req.body.uid,
+                        group: req.body.group
+                    };
+                    User.register(new User(user), req.body.password, this);
+                }
+            }
         },
         function(err, user) {
             if (no(err)) {
@@ -95,7 +118,7 @@ router.post('/login', captchaValidator, passport.authenticate('local'), function
     }, {
         maxAge: 604800,
         httpOnly: false,
-        secure: process.env.COOKIE_SECURE !== false,
+        secure: process.env.COOKIE_SECURE !== 'false' || process.env.COOKIE_SECURE !== false,
         domain: process.env.COOKIE_DOMAIN || '.hehlzx.cn'
     }).json({
         username: req.user.username,
@@ -447,11 +470,13 @@ router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), f
  * 以下悉为可选参数
  * @param {String}      username    用户名
  * @param {String}      uid         学号
+ * @param {String}      name        姓名
+ * @param {String}      school      所在学校
  */
 
 router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function(req, res) {
     let no = new CheckError(res).check,
-        operationField = ['username', 'uid'],
+        operationField = ['username', 'uid', 'name', 'school'],
         _user;
 
     if (!(req.body.username || req.body.uid)) {
@@ -460,6 +485,16 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
             message: '请求缺少某个/某些参数'
         });
     }
+
+    if (req.body.school) {
+        if (!schoolList.includes(req.body.school)) {
+            return res.status(400).json({
+                error: 'SchoolNotSupported',
+                message: '暂不支持修改为该校'
+            });
+        }
+    }
+
     Step(
       function() {
           User.findByUsername(req.params.username, this);

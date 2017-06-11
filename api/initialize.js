@@ -34,8 +34,9 @@ function initialize(cb = () => {}) {
             } else {
                 let user = new User({
                     username: 'admin',
+                    name: '超级管理猿',
                     group: 'admin',
-                    schoolId: 1
+                    uid: 1
                 });
                 User.register(user, 'hehz@2016', this);
             }

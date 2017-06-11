@@ -179,7 +179,6 @@ let UserService = {
     getReadingStatus(username, cb) {
         let _this = this,
             _user,
-            _hash = md5(JSON.stringify({ readingStatus: username })),
             _status = [],
             _failedBook = [];
 
