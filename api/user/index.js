@@ -138,14 +138,23 @@ router.post('/register', paramValidator('username', 'name', 'school', 'uid', 'gr
  *
  * @response 200 登录成功
  * {String} username    用户名
+ * {String} name        姓名
+ * {String} group       用户组
  * 同时给用户发去一个 session，session 存储于 Redis 中。
  */
 
 router.post('/login', captchaValidator, passport.authenticate('local'), function(req, res) {
+    console.log({
+        _id: req.user._id,
+        username: req.user.username,
+        group: req.user.group,
+        name: req.user.name
+    })
     res.status(200).cookie('user', {
         _id: req.user._id,
         username: req.user.username,
-        group: req.user.group
+        group: req.user.group,
+        name: req.user.name
     }, {
         maxAge: 604800,
         httpOnly: false,
@@ -153,7 +162,8 @@ router.post('/login', captchaValidator, passport.authenticate('local'), function
         domain: process.env.COOKIE_DOMAIN || '.hehlzx.cn'
     }).json({
         username: req.user.username,
-        group: req.user.group
+        group: req.user.group,
+        name: req.user.name
     });
 });
 
@@ -441,7 +451,7 @@ router.get('/:username', function(req, res) {
 
 router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), function(req, res, next) {
     // 只有超级管理员可以设他人用户组为超级管理员
-    // 只有有「设他人为管理员」的用户组可以社他人用户组为管理员
+    // 只有有「设他人为管理员」权限的用户组可以社他人用户组为管理员
     if (req.body.group === 'admin' && req.user.group !== 'admin'
       || (req.body.group === 'manager' && !req.user.permission.includes('ChangeManager'))) {
         return res.status(400).json({
@@ -486,6 +496,7 @@ router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), f
       },
       function(err) {
           if (no(err)) {
+              console.log(_user)
               res.status(201).json({
                   message: 'Modified.'
               });
@@ -529,7 +540,7 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
         }
     }
 
-    if (req.body.username && usernameNotAllowed.includes(req.body.username)) {
+    if (req.body.username && req.body.username !== req.params.username && usernameNotAllowed.includes(req.body.username)) {
         return res.status(400).json({
             error: 'UsernameNotPermitted',
             message: '不允许该用户名'
@@ -566,7 +577,7 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
         },
         function(err, users) {
             if (no(err)) {
-                if (users.length !== 0) {
+                if ((users || []).length !== 0) {
                     res.status(400).json({
                         error: 'RepeatedUidOrUsername',
                         message: '该校内已有相同学号者注册，或已有该用户名已被注册'
@@ -582,7 +593,9 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
         },
         function(err) {
             if (no(err)) {
-                cache.update(_user._id, this);
+                let group = this.group();
+                cache.update(_user._id, group());
+                cache.update('all', group());
             }
         },
         function(err) {
