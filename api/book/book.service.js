@@ -203,7 +203,7 @@ let BookService = {
                     if (questions.length <= 25) {
                         cb({
                             name: 'TooFewQuestions',
-                            message: 'There must be more than 25 questions for an open book.'
+                            message: '一本书至少要有 25 道题'
                         });
                     } else {
                         // 这段过一个礼拜我肯定就看不懂了

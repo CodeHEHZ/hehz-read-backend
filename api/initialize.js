@@ -12,7 +12,7 @@ let Step = require('step'),
 let permissionStudent = ['TakeTest'],
     permissionTeacher = _.flattenDeep([permissionStudent, 'CreateBook', 'CreateQuestion', 'OpenQuiz',
         'CloseQuiz', 'ViewStatistics', 'ModifyBookInfo']),
-    permissionManager = _.flattenDeep([permissionTeacher, 'ChangeUserGroup', 'ModifyUserInfo']),
+    permissionManager = _.flattenDeep([permissionTeacher, 'ChangeUserGroup', 'ModifyUserInfo', 'BanUser']),
     permissionAdmin = _.flattenDeep([permissionManager, 'ChangeManager',
         'ModifyGroupPermission']);
 

@@ -10,6 +10,7 @@
  * {String}     group       用户组，默认为 student
  * {[Mixed]}    book        用户最新的测试情况
  * {[Mixed]}    testRecord  用户所有的测试情况
+ * {String}     status      用户状况（正常 ok／封禁 banned）
  */
 
 let mongoose = require('../const/db'),
@@ -27,7 +28,8 @@ let User = new Schema({
     book: { type: [Schema.Types.Mixed], default: [] },
     testRecord: { type: [Schema.Types.Mixed], default: [] },
     tag: { type: [String], default: [] },
-    tagAbleToSee: { type: [String], default: [] }
+    tagAbleToSee: { type: [String], default: [] },
+    status: { type: String, default: 'ok' }
 });
 
 User.plugin(passportLocalMongoose);

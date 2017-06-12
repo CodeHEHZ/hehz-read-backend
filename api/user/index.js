@@ -14,6 +14,8 @@
  * 获取用户信息：GET /user/:username
  * 修改用户所属的用户组：PUT /user/:username/group
  * 修改用户信息（除用户组）：PUT /user/:username
+ * 封禁用户：POST /user/ban
+ * 解禁用户：POST /user/unban
  */
 
 let express = require('express'),
@@ -31,7 +33,7 @@ let express = require('express'),
     paramValidator = require('../util/paramValidator.middleware');
 
 let schoolList = process.env.schoolList || ['华二黄中', '华师大二附中'],
-    usernameNotAllowed = ['new', 'admin', 'list', 'tag', 'password', 'login', 'logout', 'register'];
+    usernameNotAllowed = ['new', 'admin', 'list', 'tag', 'password', 'login', 'logout', 'register', 'ban', 'unban'];
 
 
 router.get('/', ensureLoggedIn, function(req, res) {
@@ -144,12 +146,6 @@ router.post('/register', paramValidator('username', 'name', 'school', 'uid', 'gr
  */
 
 router.post('/login', captchaValidator, passport.authenticate('local'), function(req, res) {
-    console.log({
-        _id: req.user._id,
-        username: req.user.username,
-        group: req.user.group,
-        name: req.user.name
-    })
     res.status(200).cookie('user', {
         _id: req.user._id,
         username: req.user.username,
@@ -670,6 +666,115 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
             if (no(err)) {
                 res.status(201).json({
                     message: 'Modified.'
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 封禁用户
+ * POST /user/ban
+ *
+ * @permission 'BanUser'
+ *
+ * @param {String|[String]}     username    用户名
+ */
+
+router.post('/ban', permittedTo('BanUser'), paramValidator('username'), function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            if (typeof(req.body.username) === 'string') {
+                req.body.username = [req.body.username];
+            }
+
+            if (req.body.username.includes(req.user.username)) {
+                res.status(400).json({
+                    error: 'WhatAreYouDoing!',
+                    message: '你不能封禁自己！'
+                });
+            } else {
+                let group = this.group();
+
+                for (let username of req.body.username) {
+                    User.findByUsername(username, group());
+                }
+            }
+        },
+        function(err, users) {
+            if (no(err)) {
+                if (req.user.group === 'manager'
+                    && users.filter(user => ['manager', 'student'].includes(user.group)).length > 0) {
+                    res.status(400).json({
+                        error: 'PermissionDenied',
+                        message: '管理猿不能封禁管理猿或超级管理猿'
+                    });
+                } else {
+                    let group = this.group();
+                    for (let user of users) {
+                        user.update({ $set: { status: 'banned' } }, group());
+                    }
+                }
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: '已封禁'
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 解禁用户
+ * POST /user/unban
+ *
+ * @permission 'BanUser'
+ *
+ * @param {String|[String]}     username    用户名
+ */
+
+router.post('/unban', permittedTo('BanUser'), paramValidator('username'), function(req, res) {
+    let no = new CheckError(res).check;
+
+    Step(
+        function() {
+            if (typeof(req.body.username) === 'string') {
+                req.body.username = [req.body.username];
+            }
+
+            let group = this.group();
+
+            for (let username of req.body.username) {
+                User.findByUsername(username, group());
+            }
+        },
+        function(err, users) {
+            if (no(err)) {
+                if (req.user.group === 'manager'
+                    && users.filter(user => ['manager', 'student'].includes(user.group)).length > 0) {
+                    res.status(400).json({
+                        error: 'PermissionDenied',
+                        message: '管理猿不能解禁管理猿或超级管理猿'
+                    });
+                } else {
+                    let group = this.group();
+                    for (let user of users) {
+                        user.update({ $set: { status: 'ok' } }, group());
+                    }
+                }
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: '已解禁'
                 });
             }
         }

@@ -8,7 +8,8 @@ let express = require('express'),
     passport = require('passport'),
     LocalStrategy = require('passport-local').Strategy,
     session = require('express-session'),
-    RedisStore = require('connect-redis')(session);
+    RedisStore = require('connect-redis')(session),
+    checkUserStatus = require('./api/util/checkUserStatus.middleware');
 
 let index = require('./api'),
     user = require('./api/user'),
@@ -53,6 +54,8 @@ app.use(function(req, res, next) {
     res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, HEAD');
     next();
 });
+
+app.use(checkUserStatus);
 
 app.use('/', index);
 app.use('/user', user);
