@@ -30,7 +30,8 @@ let express = require('express'),
     captchaValidator = require('../util/captchaValidator.middleware'),
     paramValidator = require('../util/paramValidator.middleware');
 
-let schoolList = process.env.SchoolList || ['华二黄中', '华师大二附中'];
+let schoolList = process.env.schoolList || ['华二黄中', '华师大二附中'],
+    usernameNotAllowed = ['new', 'admin', 'list', 'tag', 'password', 'login', 'logout', 'register'];
 
 
 router.get('/', ensureLoggedIn, function(req, res) {
@@ -54,12 +55,13 @@ router.get('/', ensureLoggedIn, function(req, res) {
  * {Date}   createdTime 创建时间
  */
 
-router.post('/register', function(req, res) {
-    let no = new CheckError(res).check;
-    
+router.post('/register', paramValidator('username', 'name', 'school', 'uid', 'group', 'password'), function(req, res) {
+    let no = new CheckError(res).check,
+        _user;
+
     Step(
         function() {
-            if (['new', 'admin'].includes(req.body.username)) {
+            if (usernameNotAllowed.includes(req.body.username)) {
                 res.status(400).json({
                     error: 'UsernameNotPermitted',
                     message: '不允许该用户名'
@@ -97,8 +99,10 @@ router.post('/register', function(req, res) {
                 } else {
                     let user = {
                         username: req.body.username,
+                        name: req.body.name,
+                        school: req.body.school,
                         uid: req.body.uid,
-                        group: req.body.group
+                        group: req.body.group,
                     };
                     User.register(new User(user), req.body.password, this);
                 }
@@ -106,10 +110,18 @@ router.post('/register', function(req, res) {
         },
         function(err, user) {
             if (no(err)) {
+                _user = user;
+                cache.update('all', this);
+            }
+        },
+        function(err) {
+            if (no(err)) {
                 res.status(201).json({
-                    username: user.username,
-                    group: user.group,
-                    createdTime: user.createdTime
+                    username: _user.username,
+                    name: _user.name,
+                    group: _user.group,
+                    school: _user.school,
+                    createdTime: _user.createdTime
                 });
             }
         }
@@ -395,11 +407,14 @@ router.post('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, fun
  */
 
 router.get('/:username', function(req, res) {
-    let no = new CheckError(res).check;
+    let no = new CheckError(res).check,
+        mode = ['teacher', 'manager', 'admin'].includes(req.user.group)
+            ? 'original'
+            : 'safe';
 
     Step(
         function() {
-            UserService.getSingleUser(req.params.username, 'safe', this);
+            UserService.getSingleUser(req.params.username, mode, this);
         },
         function(err, user) {
             if (no(err)) {
@@ -498,7 +513,7 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
         operationField = ['username', 'uid', 'name', 'school'],
         _user;
 
-    if (!(req.body.username || req.body.uid)) {
+    if (!(req.body.username || req.body.uid || req.body.name || req.body.school)) {
         return res.status(400).json({
             error: 'MissingParam(s)',
             message: '请求缺少某个/某些参数'
@@ -512,6 +527,13 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
                 message: '暂不支持修改为该校'
             });
         }
+    }
+
+    if (req.body.username && usernameNotAllowed.includes(req.body.username)) {
+        return res.status(400).json({
+            error: 'UsernameNotPermitted',
+            message: '不允许该用户名'
+        });
     }
 
     Step(
@@ -533,7 +555,7 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
         },
         function(err) {
             if (no(err)) {
-                if (req.body.uid || req.body.school) {
+                if ((req.body.uid && req.body.uid !== _user.uid) || (req.body.school && req.body.school !== _user.school)) {
                     User.find({ uid: req.body.uid || _user.uid, school: req.body.school || _user.school }, this);
                 } else if (req.body.username && (req.body.username !== _user.username)) {
                     User.find({ username: req.body.username }, this);
@@ -556,6 +578,11 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
                     }
                     _user.update({ $set: update }, this);
                 }
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                cache.update(_user._id, this);
             }
         },
         function(err) {

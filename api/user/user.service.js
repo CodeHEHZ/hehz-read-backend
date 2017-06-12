@@ -57,10 +57,10 @@ let UserService = {
 
         if (_.isArray(user)) {
             for (let i = 0; i < user.length; i++) {
-                answer[i] = _.pick(user[i], ['username', 'createdTime', 'group', 'uid', '_id']);
+                answer[i] = _.pick(user[i], ['username', 'createdTime', 'group', 'uid', '_id', 'school']);
             }
         } else {
-            answer = _.pick(user, ['username', 'createdTime', 'group', 'uid', '_id']);
+            answer = _.pick(user, ['username', 'createdTime', 'group', 'uid', '_id', 'school']);
         }
 
         return answer;
@@ -450,9 +450,14 @@ let UserService = {
                 if (err) cb(err);
                 else {
                     users = _.union(users);
-                    let idSet = [_user._id];
-                    for (let user of users) {
-                        idSet.push(user._id);
+                    let idSet;
+                    if (['admin', 'manager'].includes(_user.group)) {
+                        idSet = ['all'];
+                    } else {
+                        idSet = [_user._id];
+                        for (let user of users) {
+                            idSet.push(user._id);
+                        }
                     }
                     cache.set(_hash, idSet, users);
                     cb(null, users);
