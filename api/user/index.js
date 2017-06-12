@@ -199,31 +199,28 @@ router.get('/logout', function(req, res) {
  * {String} message 错误提示
  */
 
-router.put('/password', ensureLoggedIn, function(req, res, next) {
+router.put('/password', ensureLoggedIn, function(req, res) {
     let no = new CheckError(res).check;
 
     if (!req.body.presentPassword) {
-        res.status(400).json({
+        return res.status(400).json({
             error: 'NoPresentPasswordProvided',
             message: '请提供现在的密码'
         });
-        return;
     }
 
     if (!req.body.newPassword) {
-        res.status(400).json({
+        return res.status(400).json({
             error: 'NoNewPasswordProvided',
             message: '请提供新的密码'
         });
-        return;
     }
 
     if (req.body.newPassword === req.body.presentPassword) {
-        res.status(400).json({
+        return res.status(400).json({
             error: 'SamePasswords',
             message: '新密码不可以与旧密码相同'
         });
-        return;
     }
 
     let _user;
@@ -264,6 +261,77 @@ router.put('/password', ensureLoggedIn, function(req, res, next) {
             if (no(err)) {
                 res.status(201).json({
                     message: 'Modified.'
+                });
+            }
+        }
+    );
+});
+
+
+/**
+ * 修改他人密码
+ * PUT /user/:username/password
+ *
+ * @param {String} password     将修改成为的密码
+ *
+ * @response 201 修改成功
+ * {String} message 消息提示
+ *
+ * @response 400 有点问题
+ * {String} error   错误名
+ * {String} message 错误提示
+ */
+
+router.put('/:username/password', ensureLoggedIn, function(req, res) {
+    let no = new CheckError(res).check;
+
+    if (!req.body.password) {
+        return res.status(400).json({
+            error: 'NoNewPasswordProvided',
+            message: '请提供新的密码'
+        });
+    }
+
+    let _user;
+
+    Step(
+        function () {
+            // 通过用户名查找用户
+            User.findByUsername(req.params.username, this);
+        },
+        function (err, user) {
+            // 验证现在的密码是否正确
+            if (no(err)) {
+                if (user) {
+                    _user = user;
+                    if (req.user.group === 'admin'
+                        || (req.user.group === 'manager' && ['student', 'teacher'].includes(_user.group))) {
+                        _user.setPassword(req.body.password, this);
+                    } else {
+                        res.status(400).json({
+                            name: 'PermissionDenied',
+                            message: '您没有权限修改他人的密码'
+                        });
+                    }
+                } else {
+                    res.status(404).json({
+                        name: 'UserNotFound',
+                        message: '该用户不存在'
+                    });
+                }
+            }
+        },
+        function(err, user) {
+            // 保存修改
+            if (no(err)) {
+                user.save(this);
+            }
+        },
+        function(err) {
+            // 回复
+            if (no(err)) {
+                res.status(201).json({
+                    message: '修改成功'
                 });
             }
         }
