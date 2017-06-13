@@ -1,5 +1,6 @@
 function checkUserStatus(req, res, next) {
-    if ((req.user.username && req.user.status === 'ok') || !req.user.username) {
+    console.log(req.user);
+    if ((req.user && req.user.status === 'ok') || !req.user) {
         next();
     } else {
         res.status(400).json({

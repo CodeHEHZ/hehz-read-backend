@@ -674,7 +674,7 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
 
 
 /**
- * 封禁用户
+ * 停用用户
  * POST /user/ban
  *
  * @permission 'BanUser'
@@ -683,7 +683,8 @@ router.put('/:username', ensureLoggedIn, permittedTo('ModifyUserInfo'), function
  */
 
 router.post('/ban', permittedTo('BanUser'), paramValidator('username'), function(req, res) {
-    let no = new CheckError(res).check;
+    let no = new CheckError(res).check,
+        _users;
 
     Step(
         function() {
@@ -694,7 +695,7 @@ router.post('/ban', permittedTo('BanUser'), paramValidator('username'), function
             if (req.body.username.includes(req.user.username)) {
                 res.status(400).json({
                     error: 'WhatAreYouDoing!',
-                    message: '你不能封禁自己！'
+                    message: '你不能停用自己！'
                 });
             } else {
                 let group = this.group();
@@ -710,9 +711,10 @@ router.post('/ban', permittedTo('BanUser'), paramValidator('username'), function
                     && users.filter(user => ['manager', 'student'].includes(user.group)).length > 0) {
                     res.status(400).json({
                         error: 'PermissionDenied',
-                        message: '管理猿不能封禁管理猿或超级管理猿'
+                        message: '管理猿不能停用管理猿或超级管理猿'
                     });
                 } else {
+                    _users = users;
                     let group = this.group();
                     for (let user of users) {
                         user.update({ $set: { status: 'banned' } }, group());
@@ -722,8 +724,17 @@ router.post('/ban', permittedTo('BanUser'), paramValidator('username'), function
         },
         function(err) {
             if (no(err)) {
+                let group = this.group();
+                for (let user of _users) {
+                    cache.update(user._id, group());
+                }
+                cache.update('all', group());
+            }
+        },
+        function(err) {
+            if (no(err)) {
                 res.status(201).json({
-                    message: '已封禁'
+                    message: '已停用'
                 });
             }
         }
@@ -741,7 +752,8 @@ router.post('/ban', permittedTo('BanUser'), paramValidator('username'), function
  */
 
 router.post('/unban', permittedTo('BanUser'), paramValidator('username'), function(req, res) {
-    let no = new CheckError(res).check;
+    let no = new CheckError(res).check,
+        _users;
 
     Step(
         function() {
@@ -764,11 +776,21 @@ router.post('/unban', permittedTo('BanUser'), paramValidator('username'), functi
                         message: '管理猿不能解禁管理猿或超级管理猿'
                     });
                 } else {
+                    _users = users;
                     let group = this.group();
                     for (let user of users) {
                         user.update({ $set: { status: 'ok' } }, group());
                     }
                 }
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                let group = this.group();
+                for (let user of _users) {
+                    cache.update(user._id, group());
+                }
+                cache.update('all', group());
             }
         },
         function(err) {
