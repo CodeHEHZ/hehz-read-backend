@@ -13,12 +13,12 @@ let username = process.env.MONGO_USERNAME || 'readAdmin',
     port = process.env.MONGO_PORT || 27017,
     host = process.env.MONGO_HOST || '127.0.0.1',
     database = process.env.MONGO_DATABASE || 'hehz-read',
-    auth = process.env.MONGO_AUTH || false,
-    replica = process.env.MONGO_REPLICA !== false;
+    auth = process.env.MONGO_AUTH === 'true',
+    replica = process.env.MONGO_REPLICA !== 'false';
 
 if (auth) {
     mongoose.connect('mongodb://' + username + ':' + password + '@' + host + ':' + port + '/' + database
-        + (replica ? '?replicaSet=foba&authSource=admin' : ''));
+        + (replica ? '?replicaSet=foba&authSource=admin' : '?authSource=admin'));
 } else {
     mongoose.connect('mongodb://' + host + ':' + port + '/' + database);
 }
