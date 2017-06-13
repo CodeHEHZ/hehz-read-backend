@@ -482,8 +482,10 @@ router.post('/tag', paramValidator('user', 'tag', 'action'), ensureLoggedIn, fun
 
 router.get('/:username', function(req, res) {
     let no = new CheckError(res).check,
-        mode = ['teacher', 'manager', 'admin'].includes(req.user.group)
-            ? 'original'
+        mode = req.user
+            ? (['teacher', 'manager', 'admin'].includes(req.user.group)
+                ? 'original'
+                : 'safe')
             : 'safe';
 
     Step(
@@ -560,7 +562,6 @@ router.put('/:username/group', ensureLoggedIn, permittedTo('ChangeUserGroup'), f
       },
       function(err) {
           if (no(err)) {
-              console.log(_user)
               res.status(201).json({
                   message: 'Modified.'
               });
