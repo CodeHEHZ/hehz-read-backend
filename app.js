@@ -51,7 +51,7 @@ app.use(function(req, res, next) {
     res.header('Access-Control-Allow-Origin', whitelist.includes(req.headers.origin) ? req.headers.origin : 'https://read.hehlzx.cn');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     res.header('Access-Control-Allow-Credentials', true);
-    res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, HEAD');
+    res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, HEAD, PATCH');
     next();
 });
 

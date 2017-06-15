@@ -304,10 +304,10 @@ let UserService = {
 
     /**
      * @function allowTag
-     * 允许／拒绝用户查看特定用标签用户
+     * 允许／拒绝用户查看特定标签用户
      *
      * @param {String}      username    正在设置标签的用户
-     * @param {[String]}    users       要为之设置标签用户
+     * @param {[String]}    users       正在被允许查看特定标签的用户
      * @param {String}      tag         标签名
      * @param {String}      action      动作（'add' / 'pull'）
      * @param {Function}    cb          回调函数

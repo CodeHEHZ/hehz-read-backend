@@ -9,7 +9,7 @@
  * 获取读书情况：GET /user/:username/status
  * 获取用户列表：GET /user/list
  * 为用户增加标签：PUT /user/tag
- * 为用户删除标签：DELETE /user/tag
+ * 为用户删除标签：PATCH /user/tag
  * 允许／拒绝用户查看特定用标签用户：POST /user/tag
  * 获取用户信息：GET /user/:username
  * 修改用户所属的用户组：PUT /user/:username/group
@@ -387,7 +387,7 @@ router.get('/list', ensureLoggedIn, function(req, res) {
  * PUT /user/tag
  *
  * @param {String/[String]} user    被添加标签用户名
- * @param {String}          tag     要添加的标签名
+ * @param {String/[String]} tag     要添加的标签名
  *
  * @response 201 添加成功
  * {String} message 提示信息
@@ -398,7 +398,13 @@ router.put('/tag', paramValidator('user', 'tag'), ensureLoggedIn, function(req, 
 
     Step(
         function() {
-            UserService.setTag(req.user.username, req.body.user, req.body.tag, 'add', this);
+            if (typeof(req.body.tag) === 'string') {
+                req.body.tag = [req.body.tag];
+            }
+            let group = this.group();
+            for (let tag of req.body.tag) {
+                UserService.setTag(req.user.username, req.body.user, tag, 'add', group());
+            }
         },
         function(err) {
             if (no(err)) {
@@ -413,7 +419,7 @@ router.put('/tag', paramValidator('user', 'tag'), ensureLoggedIn, function(req, 
 
 /**
  * 为用户删除标签
- * DELETE /user/tag
+ * PATCH /user/tag
  *
  * @param {String/[String]} user    被删除标签用户名
  * @param {String}          tag     要删除的标签名
@@ -422,20 +428,26 @@ router.put('/tag', paramValidator('user', 'tag'), ensureLoggedIn, function(req, 
  * {String} message 提示信息
  */
 
-router.delete('/tag', paramValidator('user', 'tag'), ensureLoggedIn, function(req, res) {
+router.patch('/tag', paramValidator('user', 'tag'), ensureLoggedIn, function(req, res) {
     let no = new CheckError(res).check;
 
     Step(
-      function() {
-          UserService.setTag(req.user.username, req.body.user, req.body.tag, 'pull', this);
-      },
-      function(err) {
-          if (no(err)) {
-              res.status(201).json({
-                  message: '删除成功'
-              });
-          }
-      }
+        function() {
+            if (typeof(req.body.tag) === 'string') {
+                req.body.tag = [req.body.tag];
+            }
+            let group = this.group();
+            for (let tag of req.body.tag) {
+                UserService.setTag(req.user.username, req.body.user, tag, 'pull', group());
+            }
+        },
+        function(err) {
+            if (no(err)) {
+                res.status(201).json({
+                    message: '删除成功'
+                });
+            }
+        }
     );
 });
 
@@ -444,7 +456,7 @@ router.delete('/tag', paramValidator('user', 'tag'), ensureLoggedIn, function(re
  * 允许／拒绝用户查看特定用标签用户
  * POST /user/tag
  *
- * @param {String/[String]} user    被添加／删除标签用户名
+ * @param {String/[String]} user    被添加／删除可视标签的用户名
  * @param {String}          tag     要添加／删除的标签名
  * @param {String}          action  添加／删除（'add' / 'pull'）
  *
