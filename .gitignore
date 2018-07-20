@@ -2,3 +2,4 @@ node_modules/
 npm-debug.log
 npminstall-debug.log
 .idea
+*.icloud
